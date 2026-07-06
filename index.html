@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
@@ -9,7 +9,7 @@
   <link rel="apple-touch-icon" href="dd-icon.png" />
 
   <meta property="og:title" content="Saujana - Darkroom Dispatch" />
-  <meta property="og:description" content="Film Lab KL Â· Operations Dashboard" />
+  <meta property="og:description" content="Film Lab KL · Operations Dashboard" />
   <meta property="og:image" content="https://darkroom.saujanalab.com/dd-icon.png" />
   <meta property="og:url" content="https://darkroom.saujanalab.com/" />
   <meta property="og:type" content="website" />
@@ -136,7 +136,7 @@ const fmtDate = ts => ts ? new Date(ts).toLocaleDateString("en-GB",{day:"2-digit
 const fmtDT   = ts => {
   if (!ts) return "-";
   const d = new Date(ts);
-  return d.toLocaleDateString("en-GB",{day:"2-digit",month:"short"}) + " Â· " +
+  return d.toLocaleDateString("en-GB",{day:"2-digit",month:"short"}) + " · " +
          d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
 };
 
@@ -146,12 +146,12 @@ const deliveryUrl = o => {
   const name     = (o.customerName || "Customer").toString();
   const film     = (o.film || "").toString();
   const link     = (o.driveLink || "").toString();
-  // Notes excluded from URL â€” fetched from Sheets by delivery page
+  // Notes excluded from URL — fetched from Sheets by delivery page
   return `${BASE_URL}/?order=${encodeURIComponent(orderNum)}&name=${encodeURIComponent(name)}&film=${encodeURIComponent(film)}&link=${encodeURIComponent(link)}`;
 };
 
 async function getShortLink(longUrl) {
-  // is.gd supports CORS natively â€” no proxy needed, fast and reliable
+  // is.gd supports CORS natively — no proxy needed, fast and reliable
   const services = [
     `https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`,
     `https://v.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`,
@@ -238,7 +238,7 @@ function LockScreen({onUnlock}) {
   opacity:0,
   animation:"subtitleReveal 0.8s steps(6) 2.2s forwards"
 }}>
-  Film Lab Kuala Lumpur Â· Operations
+  Film Lab Kuala Lumpur · Operations
 </div>
     </div>
 
@@ -266,7 +266,7 @@ function LockScreen({onUnlock}) {
         value={pw}
         onChange={e=>setPw(e.target.value)}
         onKeyDown={e=>e.key==="Enter" && check()}
-        placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+        placeholder="••••••••"
         style={{
           textAlign:"center",
           fontSize:18,
@@ -387,7 +387,7 @@ async function addCustomer() {
     setSelCust(exists);
     setCustInput(exists.name);
     setCustEmail(exists.email);
-    showToast("Customer already exists âœ“");
+    showToast("Customer already exists ✓");
     return;
   }
 
@@ -408,7 +408,7 @@ async function addCustomer() {
 };
 
     setSelCust(newCustomer);
-    showToast("Customer added âœ“");
+    showToast("Customer added ✓");
   } else {
     showToast(res?.error || "Could not add customer");
   }
@@ -424,7 +424,7 @@ async function updateCustomerInfo() {
   });
 
   if (res?.success) {
-    showToast("Customer updated âœ“");
+    showToast("Customer updated ✓");
   } else {
     showToast(res?.error || "Could not update customer");
   }
@@ -450,7 +450,7 @@ function addRoll() {
     });
     if (res && res.folderUrl) {
       setDriveLink(res.folderUrl);
-      showToast(`Folder ready: ${res.folderName} âœ“`);
+      showToast(`Folder ready: ${res.folderName} ✓`);
       window.open(res.folderUrl, "_blank");
     } else {
       showToast(res?.error || "Could not create folder");
@@ -459,7 +459,7 @@ function addRoll() {
   }
 
   async function generate() {
-    const film = rolls.filter(Boolean).join(" Â· ");
+    const film = rolls.filter(Boolean).join(" · ");
     if (!orderNo.trim()||!film||!driveLink.trim()) return;
     setGenerating(true);
     
@@ -485,7 +485,7 @@ const shortUrl = await getShortLink(longUrl, order.orderNumber);
     
     setResult({url: longUrl, shortUrl, custName:name, orderNumber:order.orderNumber, film, notes:order.notes});
     setCopied({}); setGenerating(false);
-    showToast("Order saved and link generated âœ“");
+    showToast("Order saved and link generated ✓");
   }
 
   function copyText(text, key) {
@@ -504,7 +504,7 @@ const shortUrl = await getShortLink(longUrl, order.orderNumber);
   async function copyRich() {
     if (!result) return;
     const r = result;
-    const html = `<p>Hi <strong>${r.custName}</strong>! Your scans are ready ðŸŽžï¸</p><br><p><strong>Order Number: ${r.orderNumber}</strong></p><br><p>Please click the link below to access your scans:</p><br><p><a href="${r.url}"><strong>Get your scans here â†’</strong></a></p><br><p>Link active for <strong>7 days</strong>. Quote order number when collecting negatives.</p><br><p>Questions? <a href="https://wa.me/601159348334"><strong>WhatsApp: +60 1159 348 334</strong></a></p><br><p>Kind regards,<br><strong>Saujana Film Lab</strong><br>Kuala Lumpur, Malaysia</p>`;
+    const html = `<p>Hi <strong>${r.custName}</strong>! Your scans are ready 🎞️</p><br><p><strong>Order Number: ${r.orderNumber}</strong></p><br><p>Please click the link below to access your scans:</p><br><p><a href="${r.url}"><strong>Get your scans here →</strong></a></p><br><p>Link active for <strong>7 days</strong>. Quote order number when collecting negatives.</p><br><p>Questions? <a href="https://wa.me/601159348334"><strong>WhatsApp: +60 1159 348 334</strong></a></p><br><p>Kind regards,<br><strong>Saujana Film Lab</strong><br>Kuala Lumpur, Malaysia</p>`;
     const htmlWithNotes = html.replace("</strong></p><br><p>Please click", `</strong></p>${emailNotesHtml(r)}<br><p>Please click`);
     await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([htmlWithNotes],{type:"text/html"})})]);
     showToast("Rich email copied - paste into Gmail!");
@@ -514,7 +514,7 @@ const shortUrl = await getShortLink(longUrl, order.orderNumber);
     if (!result) return;
     const r = result;
     const sub = encodeURIComponent(`[${r.orderNumber}] Your scans are ready - Saujana Film Lab KL`);
-    const body = encodeURIComponent(`Hi ${r.custName}! Your scans are ready ðŸŽžï¸\n\nOrder: ${r.orderNumber}\n\nPlease click the link below to access your scans:\n\n${r.shortUrl}\n\nLink active for 7 days. Quote order number when collecting negatives.\n\nQuestions? WhatsApp us at +60 1159 348 334\n\nKind regards,\nSaujana Film Lab\nKuala Lumpur, Malaysia`);
+    const body = encodeURIComponent(`Hi ${r.custName}! Your scans are ready 🎞️\n\nOrder: ${r.orderNumber}\n\nPlease click the link below to access your scans:\n\n${r.shortUrl}\n\nLink active for 7 days. Quote order number when collecting negatives.\n\nQuestions? WhatsApp us at +60 1159 348 334\n\nKind regards,\nSaujana Film Lab\nKuala Lumpur, Malaysia`);
     const bodyWithNotes = r.notes
       ? encodeURIComponent(decodeURIComponent(body).replace(`Order: ${r.orderNumber}\n\nPlease`, `Order: ${r.orderNumber}${emailNotesText(r)}\n\nPlease`))
       : body;
@@ -523,7 +523,7 @@ const shortUrl = await getShortLink(longUrl, order.orderNumber);
 
   function copyWhatsApp() {
     if (!result) return;
-    const text = `Hi ${result.custName}! Your scans are ready ðŸŽžï¸\n\nOrder Number: ${result.orderNumber}\n\nGet your scans here:\n${result.shortUrl}\n\nLink active for 7 days. Quote order number when collecting negatives.\n\nSaujana Film Lab KL`;
+    const text = `Hi ${result.custName}! Your scans are ready 🎞️\n\nOrder Number: ${result.orderNumber}\n\nGet your scans here:\n${result.shortUrl}\n\nLink active for 7 days. Quote order number when collecting negatives.\n\nSaujana Film Lab KL`;
     navigator.clipboard.writeText(text).then(()=>{
       setCopied(c=>({...c, wa:true}));
       showToast("WhatsApp / DM text copied!");
@@ -538,12 +538,12 @@ function sendViaWhatsApp() {
 
   let phone = custPhone.replace(/\D/g, "");
 
-  // Indonesia local number â†’ international
+  // Indonesia local number → international
   if (phone.startsWith("0")) {
     phone = "62" + phone.slice(1);
   }
 
-  const text = `Hi ${result.custName}! Your scans are ready ðŸŽžï¸
+  const text = `Hi ${result.custName}! Your scans are ready 🎞️
 
 Order Number: ${result.orderNumber}
 
@@ -590,7 +590,7 @@ setCustPhone(customer ? (customer.phone || "") : "");
 setSelCust(customer);
     
     // Split film string safely
-    const rollsArray = (o.film && typeof o.film === 'string') ? o.film.split(" Â· ") : [""];
+    const rollsArray = (o.film && typeof o.film === 'string') ? o.film.split(" · ") : [""];
     setRolls(rollsArray);
     
     setDriveLink(o.driveLink || "");
@@ -608,7 +608,7 @@ setSelCust(customer);
     });
     
     setCopied({});
-    showToast("Memories Digged! âœ“");
+    showToast("Memories Digged! ✓");
   }
 
   return (
@@ -651,12 +651,12 @@ setSelCust(customer);
                       <div>
                         <div style={{fontSize:13,color:"var(--white)"}}>{c.name}</div>
                         <div style={{fontSize:10,color:"var(--muted)",marginTop:2}}>
-                          {c.email}{c.phone?` Â· ${c.phone}`:""}
+                          {c.email}{c.phone?` · ${c.phone}`:""}
                         </div>
                       </div>
                       {c.totalOrders>0&&<span style={{fontSize:9,background:"var(--ocean)",
                         color:"var(--white)",padding:"2px 8px",borderRadius:10,fontWeight:700}}>
-                        {c.totalOrders}Ã—</span>}
+                        {c.totalOrders}×</span>}
                     </div>
                   </div>
                 ))}
@@ -674,7 +674,7 @@ setSelCust(customer);
                     {selCust.totalOrders} prev. order{selCust.totalOrders!==1?"s":""}</span>}
                 </div>
                 <button onClick={clearCust}
-                  style={{background:"none",border:"none",color:"var(--muted)",fontSize:16}}>Ã—</button>
+                  style={{background:"none",border:"none",color:"var(--muted)",fontSize:16}}>×</button>
               </div>
             )}
           </div>
@@ -740,7 +740,7 @@ setSelCust(customer);
     e.currentTarget.style.transform="translateY(-1px)";
   }}
 >
-  âœŽ Update Customer
+  Edit Update Customer
 </button>
     </div>
   )}
@@ -799,9 +799,9 @@ setSelCust(customer);
               {rolls.map((r,i)=>(
                 <div key={i} style={{display:"flex",gap:8,alignItems:"center"}}>
                   <input value={r} onChange={e=>updateRoll(i,e.target.value)}
-                    placeholder={`Roll ${i+1} - e.g. Portra 400 Â· 35mm`} style={{flex:1}}/>
+                    placeholder={`Roll ${i+1} - e.g. Portra 400 · 35mm`} style={{flex:1}}/>
                   {rolls.length>1&&<button onClick={()=>removeRoll(i)}
-                    style={{background:"none",border:"none",color:"var(--muted)",fontSize:18,padding:"0 4px"}}>Ã—</button>}
+                    style={{background:"none",border:"none",color:"var(--muted)",fontSize:18,padding:"0 4px"}}>×</button>}
                 </div>
               ))}
             </div>
@@ -832,7 +832,7 @@ setSelCust(customer);
     e.currentTarget.style.color = "var(--muted)";
   }}
 >
-  {creatingFolder ? "Creatingâ€¦" : "ðŸ“ Create Drive Folder"}
+  {creatingFolder ? "Creating..." : " Create Drive Folder"}
 </button>
   </div>
   
@@ -866,7 +866,7 @@ setSelCust(customer);
       transition: "background 0.15s ease, color 0.15s ease"
     }}
   >
-    ðŸ“ Access Drive Folder
+     Access Drive Folder
   </a>
   )}
 </div>
@@ -898,10 +898,10 @@ setSelCust(customer);
               </div>
               <div style={{display:"grid",gridTemplateColumns: "repeat(3, 1fr)",gap:8,marginBottom:8}}>
                 <button onClick={()=>copyText(result.shortUrl,"url")} style={{...css.btn(),padding:11}}>
-                  {copied.url?"Copied âœ“":"Copy Link"}
+                  {copied.url?"Copied ✓":"Copy Link"}
                 </button>
                 <button onClick={copyWhatsApp} style={{...css.btn("ghost"),padding:11}}>
-                  {copied.wa?"Copied âœ“":"Copy for WA / DM"}
+                  {copied.wa?"Copied ✓":"Copy for WA / DM"}
                 </button>
                 <button
   onClick={sendViaWhatsApp}
@@ -930,7 +930,7 @@ setSelCust(customer);
               </div>
               <div style={{textAlign:"center", marginTop:12}}>
                 <a href={result.url} target="_blank" rel="noopener" style={{fontSize:9, color:"var(--muted)", textDecoration:"underline", textTransform:"uppercase", letterSpacing:"0.1em"}}>
-                  Preview Delivery Page â†—
+                  Preview Delivery Page ↔
                 </a>
               </div>
             </div>
@@ -939,7 +939,7 @@ setSelCust(customer);
               <span style={css.secLabel}>Email</span>
               <div style={{fontSize:12,lineHeight:1.9,color:"var(--light)",background:"var(--dark)",
                            border:"1px solid var(--border)",borderRadius:2,padding:18,marginBottom:12}}>
-                Hi <strong style={{color:"var(--white)"}}>{result.custName}</strong>! Your scans are ready ðŸŽžï¸<br/><br/>
+                Hi <strong style={{color:"var(--white)"}}>{result.custName}</strong>! Your scans are ready 🎞️<br/><br/>
                 <strong style={{color:"var(--white)"}}>Order Number: {result.orderNumber}</strong><br/><br/>
                 {result.notes && (
                   <>
@@ -948,7 +948,7 @@ setSelCust(customer);
                   </>
                 )}
                 Please click the link below to access your scans:<br/><br/>
-                <span style={{color:"var(--blue-l)",textDecoration:"underline"}}>Get your scans here â†’</span><br/><br/>
+                <span style={{color:"var(--blue-l)",textDecoration:"underline"}}>Get your scans here →</span><br/><br/>
                 Link active for <strong style={{color:"var(--white)"}}>7 days</strong>. Quote order number when collecting negatives.<br/><br/>
                 Questions? WhatsApp us at <strong style={{color:"var(--white)"}}>+60 1159 348 334</strong><br/><br/>
                 Kind regards,<br/>
@@ -956,7 +956,7 @@ setSelCust(customer);
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                 <button onClick={copyRich} style={{...css.btn(),padding:11}}>Copy for Gmail</button>
-                <button onClick={openGmail} style={{...css.btn("ghost"),padding:11}}>Open in Gmail â†—</button>
+                <button onClick={openGmail} style={{...css.btn("ghost"),padding:11}}>Open in Gmail ↔</button>
               </div>
             </div>
           </>
@@ -998,7 +998,7 @@ setSelCust(customer);
                       <span style={{fontSize:11,color:"var(--muted)"}}>{o.customerName}</span>
                     </div>
                     <div style={{fontSize:10,color:"var(--dim)",marginTop:3}}>
-                      {fmtDT(o.createdAt)} Â· {o.film}
+                      {fmtDT(o.createdAt)} · {o.film}
                     </div>
                   </div>
                   <button onClick={()=>loadPastOrder(o)}
@@ -1008,7 +1008,7 @@ setSelCust(customer);
                   <a href={deliveryUrl(o)} target="_blank" rel="noopener"
                     style={{...css.btn("ghost"),padding:"7px 10px",fontSize:9,whiteSpace:"nowrap",
                       color:"var(--blue-l)",textDecoration:"none"}}>
-                    Open â†—
+                    Open ↔
                   </a>
                 </div>
               ))}
@@ -1060,10 +1060,10 @@ const filtered = customers
     setSaving(true);
     if (editing==="new") {
       await onAdd(form);
-      showToast("Customer added âœ“");
+      showToast("Customer added ✓");
     } else {
       await onUpdate({...editing,...form});
-      showToast("Updated âœ“");
+      showToast("Updated ✓");
     }
     setEditing(null); setSaving(false);
   }
@@ -1085,7 +1085,7 @@ async function updateCustomerInfo() {
     phone: custPhone.trim()
   });
 
-  showToast("Customer updated âœ“");
+  showToast("Customer updated ✓");
 } else {
   showToast(res?.error || "Could not update customer");
 }
@@ -1095,7 +1095,7 @@ async function updateCustomerInfo() {
     try {
       await onDelete(id);
       if (selected?.id===id) setSelected(null);
-      showToast("Removed âœ“");
+      showToast("Removed ✓");
     } catch(e) {
       showToast("Could not remove from Sheets");
     }
@@ -1154,8 +1154,8 @@ async function updateCustomerInfo() {
 
         {/* Count */}
         <div style={{fontSize:9,color:"var(--dim)",letterSpacing:"0.25em",textTransform:"uppercase"}}>
-          {filtered.length} customer{filtered.length!==1?"s":""}{search?` Â· "${search}"`:""}
-          {filtered.length>pageSize?` Â· page ${currentPage}/${totalPages}`:""}
+          {filtered.length} customer{filtered.length!==1?"s":""}{search?` · "${search}"`:""}
+          {filtered.length>pageSize?` · page ${currentPage}/${totalPages}`:""}
         </div>
 
         {/* List */}
@@ -1181,10 +1181,10 @@ async function updateCustomerInfo() {
                     <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontStyle:"italic",
                       color:selected?.id===c.id?"var(--blue-l)":"var(--white)"}}>{c.name}</span>
                     {c.totalOrders>0&&<span style={{fontSize:9,background:"var(--ocean)",color:"var(--white)",
-                      padding:"2px 8px",borderRadius:10,fontWeight:700}}>{c.totalOrders}Ã—</span>}
+                      padding:"2px 8px",borderRadius:10,fontWeight:700}}>{c.totalOrders}×</span>}
                   </div>
                   <div style={{fontSize:11,color:"var(--muted)",marginTop:3}}>
-                    {c.email}{c.phone?` Â· ${c.phone}`:""}
+                    {c.email}{c.phone?` · ${c.phone}`:""}
                   </div>
                   {c.lastOrderDate&&<div style={{fontSize:10,color:"var(--dim)",marginTop:3}}>
                     Last: {fmtDate(c.lastOrderDate)}
@@ -1194,7 +1194,7 @@ async function updateCustomerInfo() {
                   <button onClick={e=>{e.stopPropagation();setEditing(c);setForm({name:c.name,email:c.email,phone:c.phone||""});}}
                     style={{...css.btn("ghost"),padding:"4px 10px",fontSize:10}}>Edit</button>
                   <button onClick={e=>{e.stopPropagation();del(c.id);}}
-                    style={{...css.btn("danger"),padding:"4px 10px",fontSize:10}}>Ã—</button>
+                    style={{...css.btn("danger"),padding:"4px 10px",fontSize:10}}>×</button>
                 </div>
               </div>
             </div>
@@ -1237,7 +1237,7 @@ async function updateCustomerInfo() {
                   style={{...css.btn("green"),fontSize:9,padding:"10px 16px"}}>+ New Order</button>
                 <button onClick={()=>setSelected(null)}
                   style={{background:"none",border:"1px solid var(--border)",borderRadius:2,
-                          color:"var(--muted)",fontSize:16,padding:"6px 12px"}}>Ã—</button>
+                          color:"var(--muted)",fontSize:16,padding:"6px 12px"}}>×</button>
               </div>
             </div>
 
@@ -1277,7 +1277,7 @@ async function updateCustomerInfo() {
                   {o.driveLink&&<a href={deliveryUrl(o)} target="_blank" rel="noopener"
                     style={{...css.btn("ghost"),padding:"6px 10px",fontSize:9,whiteSpace:"nowrap",
                       color:"var(--blue-l)",textDecoration:"none"}}>
-                    Open scans â†—
+                    Open scans ↔
                   </a>}
                 </div>
               ))}
@@ -1376,14 +1376,14 @@ function App() {
             <div>
               <img src="dd-horizontal.png" alt="Darkroom Dispatch Logo" style={{height:45, objectFit:"contain", display:"block"}}/>
               <div style={{fontSize:8,letterSpacing:"0.4em",textTransform:"uppercase",color:"var(--muted)",marginTop:8}}>
-                Film Lab Kuala Lumpur Â· Operations
+                Film Lab Kuala Lumpur · Operations
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:12}}>
               {syncing&&<span style={{fontSize:9,color:"var(--muted)",letterSpacing:"0.2em",textTransform:"uppercase"}}>Syncing...</span>}
-              <button onClick={load} style={{...css.btn("ghost"),padding:"6px 12px",fontSize:9}}>â†» Refresh</button>
+              <button onClick={load} style={{...css.btn("ghost"),padding:"6px 12px",fontSize:9}}>↻ Refresh</button>
               <span style={{fontSize:9,color:"var(--dim)",letterSpacing:"0.2em",textTransform:"uppercase"}}>
-                {customers.length} customers Â· {orders.length} orders
+                {customers.length} customers · {orders.length} orders
               </span>
             </div>
           </div>
@@ -1424,7 +1424,7 @@ function App() {
 }
 
 
-// â”€â”€ DEFAULT STOCK ITEMS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── DEFAULT STOCK ITEMS ───────────────────────────────────
 const DEFAULT_STOCK = [
   {category:"COLOR 35MM", items:[
     {name:"Kodak ColorPlus 200", qty:0, sold:0, visible:true},
@@ -1456,7 +1456,7 @@ const DEFAULT_STOCK = [
   ]},
 ];
 
-// â”€â”€ STOCK TRACKER COMPONENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── STOCK TRACKER COMPONENT ───────────────────────────────
 function StockTracker() {
   const [stock, setStock]         = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -1540,7 +1540,7 @@ function StockTracker() {
       const finalizedStock = finalizeStock(stock);
       await apiCall("saveStock", {stock: finalizedStock});
       setStock(finalizedStock);
-      showToast("Stock saved âœ“");
+      showToast("Stock saved ✓");
     } catch(e) {
       showToast("Save failed");
     }
@@ -1696,7 +1696,7 @@ function StockTracker() {
             Stock Count
           </div>
           <div style={{fontSize:9,letterSpacing:"0.35em",textTransform:"uppercase",color:"var(--muted)",marginTop:4}}>
-            End of Day Â· Inventory Check
+            End of Day · Inventory Check
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
@@ -1745,7 +1745,7 @@ function StockTracker() {
                     <div style={{display:"flex",alignItems:"center",gap:4}}>
                     <button onClick={()=>updateQty(catIdx,itemIdx,-1)}
                       style={{...css.btn("ghost"),padding:"4px 10px",fontSize:14,lineHeight:1,
-                              minWidth:32,textAlign:"center"}}>âˆ’</button>
+                              minWidth:32,textAlign:"center"}}>−</button>
                     <input
                       type="number" value={item.sold||0} min="0"
                       onChange={e=>setQty(catIdx,itemIdx,e.target.value)}
@@ -1762,7 +1762,7 @@ function StockTracker() {
                   </div>
                   <button type="button" aria-hidden="true"
                     style={{display:"none",background:"none",border:"none",color:"var(--dim)",
-                            fontSize:14,padding:"0 2px",lineHeight:1}}>Ã—</button>
+                            fontSize:14,padding:"0 2px",lineHeight:1}}>×</button>
                 </div>
               ))}
 
@@ -1891,7 +1891,7 @@ function StockTracker() {
             </span>
             <button onClick={copyReport}
               style={{...css.btn(copied?"ghost":"primary"),padding:"8px 16px",fontSize:9}}>
-              {copied?"Copied âœ“":"Copy Report"}
+              {copied?"Copied ✓":"Copy Report"}
             </button>
           </div>
           <pre style={{fontSize:13,lineHeight:1.9,color:"var(--white)",
