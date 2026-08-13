@@ -778,44 +778,6 @@ setSelCust(customer);
   {customDeliveryName&&<input value={deliveryName} onChange={e=>setDeliveryName(e.target.value)} placeholder="Delivery display name"/>}
 </div>
 
-<div style={{marginBottom:18}}>
-  <label style={css.label}>Delivery Theme</label>
-  <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:7}}>
-    {DELIVERY_THEME_OPTIONS.map(option=>{
-      const selected=deliveryTheme===option.value;
-      return (
-        <button
-          key={option.value}
-          type="button"
-          aria-pressed={selected}
-          onClick={()=>setDeliveryTheme(option.value)}
-          style={{
-            padding:"0 0 11px",
-            overflow:"hidden",
-            background:selected?option.surface:"var(--dark)",
-            border:`1px solid ${selected?option.accent:"var(--border)"}`,
-            color:selected?option.paper:"var(--muted)",
-            fontFamily:"'Montserrat',sans-serif",
-            fontSize:8,
-            fontWeight:selected?700:500,
-            letterSpacing:".08em",
-            lineHeight:1.35,
-            textTransform:"uppercase",
-            cursor:"pointer",
-            transition:"border-color .18s ease,background .18s ease,color .18s ease"
-          }}
-        >
-          <span aria-hidden="true" style={{display:"block",height:5,marginBottom:10,background:option.accent}}/>
-          {option.label}
-        </button>
-      );
-    })}
-  </div>
-  <div style={{fontSize:8.5,color:"var(--dim)",lineHeight:1.55,marginTop:7}}>
-    Sets the customer delivery page look.
-  </div>
-</div>
-
 {/* Phone */}
 <div style={{marginTop:22, marginBottom:18}}>
   <label style={css.label}>
@@ -927,6 +889,44 @@ setSelCust(customer);
               ))}
             </div>
           </div>
+
+<div style={{marginBottom:18}}>
+  <label style={css.label}>Delivery Theme</label>
+  <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:7}}>
+    {DELIVERY_THEME_OPTIONS.map(option=>{
+      const selected=deliveryTheme===option.value;
+      return (
+        <button
+          key={option.value}
+          type="button"
+          aria-pressed={selected}
+          onClick={()=>setDeliveryTheme(option.value)}
+          style={{
+            padding:"0 0 11px",
+            overflow:"hidden",
+            background:selected?option.surface:"var(--dark)",
+            border:`1px solid ${selected?option.accent:"var(--border)"}`,
+            color:selected?option.paper:"var(--muted)",
+            fontFamily:"'Montserrat',sans-serif",
+            fontSize:8,
+            fontWeight:selected?700:500,
+            letterSpacing:".08em",
+            lineHeight:1.35,
+            textTransform:"uppercase",
+            cursor:"pointer",
+            transition:"border-color .18s ease,background .18s ease,color .18s ease"
+          }}
+        >
+          <span aria-hidden="true" style={{display:"block",height:5,marginBottom:10,background:option.accent}}/>
+          {option.label}
+        </button>
+      );
+    })}
+  </div>
+  <div style={{fontSize:8.5,color:"var(--dim)",lineHeight:1.55,marginTop:7}}>
+    Sets the customer delivery page look.
+  </div>
+</div>
 
          {/* Google Drive Link Block */}
 <div style={{marginBottom: 24}}>
