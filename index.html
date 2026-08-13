@@ -47,6 +47,26 @@ body[data-theme="light"] .brand-logo{
   filter:invert(1) contrast(1.15);
 }
 
+body[data-theme="light"] .day-accent{
+  background:#f4c542 !important;
+  border-color:#c89516 !important;
+  color:#111111 !important;
+}
+
+body[data-theme="light"] .stock-heading{
+  color:#a8791e !important;
+}
+
+.scoreboard{
+  display:flex;align-items:center;gap:6px;padding:5px 8px;
+  border:1px solid rgba(255,140,40,.45);background:rgba(45,18,4,.75);
+  box-shadow:inset 0 0 12px rgba(255,140,40,.16),0 0 10px rgba(255,140,40,.08);
+}
+.scoreboard-item{display:flex;align-items:baseline;gap:5px;color:#ff9f32;text-shadow:0 0 7px rgba(255,140,40,.8);font-family:'Montserrat',sans-serif;}
+.scoreboard-number{font-size:15px;font-weight:700;line-height:1;letter-spacing:.08em;}
+.scoreboard-label{font-size:7px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;}
+body[data-theme="light"] .scoreboard{background:#221305;border-color:#b66b16;}
+
 @keyframes logoReveal {
   0% {
     opacity: 0;
@@ -133,12 +153,19 @@ const BASE_URL = "https://scans.saujanalab.com";
 const PASSWORD = "8888";
 const AUTH_KEY = "grain-brain-auth";
 const CACHE_KEY = "grain-brain-dispatch-cache-v1";
-const API_TIMEOUTS = {default:20000,getInitialData:12000,getCustomers:12000,getOrders:12000,addOrder:35000,createFolder:45000};
-const RETRY_ACTIONS = new Set(["getInitialData","getCustomers","getOrders","addOrder","createFolder"]);
+const STOCK_CACHE_KEY = "grain-brain-stock-cache-v1";
+const STOCK_HISTORY_CACHE_KEY = "grain-brain-stock-history-cache-v1";
+const API_TIMEOUTS = {default:20000,getInitialData:12000,getCustomers:12000,getOrders:12000,getStock:12000,getStockHistory:12000,saveStock:35000,finalizeStock:45000,recordStockHistory:35000,addOrder:35000,createFolder:45000};
+const RETRY_ACTIONS = new Set(["getInitialData","getCustomers","getOrders","getStock","getStockHistory","saveStock","finalizeStock","recordStockHistory","addOrder","createFolder"]);
 const RETRY_DELAYS = [600,1600,3600];
 
 function readCache(){try{const v=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");return v&&Array.isArray(v.customers)&&Array.isArray(v.orders)?v:null}catch(e){return null}}
 function writeCache(customers,orders){try{localStorage.setItem(CACHE_KEY,JSON.stringify({customers,orders,savedAt:Date.now()}))}catch(e){}}
+function readStockCache(){try{const v=JSON.parse(localStorage.getItem(STOCK_CACHE_KEY)||"null");return v&&Array.isArray(v.stock)?v.stock:null}catch(e){return null}}
+function writeStockCache(stock){try{localStorage.setItem(STOCK_CACHE_KEY,JSON.stringify({stock,savedAt:Date.now()}))}catch(e){}}
+function readLocalStockHistory(){try{const v=JSON.parse(localStorage.getItem(STOCK_HISTORY_CACHE_KEY)||"[]");return Array.isArray(v)?v:[]}catch(e){return []}}
+function writeLocalStockHistory(history){try{localStorage.setItem(STOCK_HISTORY_CACHE_KEY,JSON.stringify((history||[]).slice(0,30)))}catch(e){}}
+function requireApiSuccess(result,message){if(!result||result.error||result.success===false)throw new Error(result?.error||message);return result}
 function cleanOrderNumber(value){return String(value??"").trim().toUpperCase()}
 
 async function apiCall(action, data=null) {
@@ -1429,6 +1456,7 @@ function App() {
   const [orders, setOrders]       = useState(cached?.orders||[]);
   const [loading, setLoading]     = useState(!cached);
   const [syncing, setSyncing]     = useState(false);
+  const [refreshStatus, setRefreshStatus] = useState("");
   const [prefill, setPrefill]     = useState(null);
   const [resetSignal, setResetSignal] = useState(0);
   const [loadError, setLoadError] = useState("");
@@ -1439,7 +1467,7 @@ function App() {
   },[theme]);
 
   async function load() {
-  setLoading(customers.length===0&&orders.length===0);setSyncing(true);setLoadError("");
+  setLoading(customers.length===0&&orders.length===0);setSyncing(true);setRefreshStatus("working");setLoadError("");
   try{
     const combined=await apiCall("getInitialData");
     let c,o;
@@ -1448,10 +1476,14 @@ function App() {
     if(!Array.isArray(c)||!Array.isArray(o)) throw new Error(c?.error||o?.error||combined?.error||"Unexpected response");
     setCustomers(c);setOrders(o);writeCache(c,o);
   }catch(e){setLoadError(`Could not refresh Google Sheets: ${e.message||e}`)}
-  finally{setLoading(false);setSyncing(false)}
+  finally{
+    setLoading(false);setSyncing(false);setRefreshStatus("done");
+    setTimeout(()=>setRefreshStatus(""),1800);
+  }
 }
 
   useEffect(()=>{ if(authed) load(); },[authed]);
+  useEffect(()=>{ if(authed)writeCache(customers,orders); },[authed,customers,orders]);
 
   async function handleAdd(form) {
     setSyncing(true);
@@ -1509,18 +1541,20 @@ function App() {
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:12}}>
-              {syncing&&<span style={{fontSize:9,color:"var(--muted)",letterSpacing:"0.2em",textTransform:"uppercase"}}>Syncing...</span>}
               <button
                 onClick={()=>setTheme(v=>v==="day"?"night":"day")}
                 style={{...css.btn("ghost"),padding:"6px 12px",fontSize:9,minWidth:82}}
               >
                 Theme: {theme==="day"?"☀️":"🌙"}
               </button>
-              <button onClick={handleNewOrder} style={{...css.btn("blue"),padding:"6px 12px",fontSize:9}}>+ New Order</button>
-              <button onClick={load} disabled={syncing} style={{...css.btn("ghost"),padding:"6px 12px",fontSize:9}}>↻ Refresh</button>
-              <span style={{fontSize:9,color:"var(--dim)",letterSpacing:"0.2em",textTransform:"uppercase"}}>
-                {customers.length} customers · {orders.length} orders
-              </span>
+              <button className="day-accent" onClick={handleNewOrder} style={{...css.btn("blue"),padding:"6px 12px",fontSize:9}}>+ New Order</button>
+              <button onClick={load} disabled={syncing} style={{...css.btn("ghost"),padding:"6px 12px",fontSize:9,minWidth:104}}>
+                {refreshStatus==="working"?"Working on it...":refreshStatus==="done"?"All done!":"↻ Refresh"}
+              </button>
+              <div className="scoreboard" aria-label={`${customers.length} customers and ${orders.length} orders`}>
+                <div className="scoreboard-item"><span className="scoreboard-number">{customers.length}</span><span className="scoreboard-label">Cust</span></div>
+                <div className="scoreboard-item"><span className="scoreboard-number">{orders.length}</span><span className="scoreboard-label">Orders</span></div>
+              </div>
             </div>
           </div>
           <div style={{display:"flex",marginTop:10}}>
@@ -1563,40 +1597,53 @@ function App() {
 
 // ── DEFAULT STOCK ITEMS ───────────────────────────────────
 const DEFAULT_STOCK = [
-  {category:"COLOR 35MM", items:[
-    {name:"Kodak ColorPlus 200", qty:0, sold:0, visible:true},
-    {name:"Kodak Portra 160", qty:0, sold:0, visible:true},
-    {name:"Kodak Portra 400", qty:0, sold:0, visible:true},
-    {name:"Kodak Ultramax 400", qty:0, sold:0, visible:true},
-    {name:"Kodak Gold 200", qty:0, sold:0, visible:true},
-    {name:"Lucky Film 200", qty:0, sold:0, visible:true},
-    {name:"Fuji 200", qty:0, sold:0, visible:true},
-    {name:"Fuji 400", qty:0, sold:0, visible:true},
-  ]},
-  {category:"BW 35MM", items:[
-    {name:"Kodak 400TX", qty:0, sold:0, visible:true},
-    {name:"Ilford HP5 400", qty:0, sold:0, visible:true},
-    {name:"Fomapan 400", qty:0, sold:0, visible:true},
+  {category:"35MM FILM", items:[
+    {name:"Fujifilm 200", qty:58, sold:0, visible:true},
+    {name:"Fujifilm 400", qty:7, sold:0, visible:true},
+    {name:"Kodak ColorPlus", qty:25, sold:0, visible:true},
+    {name:"Kodak Ultramax", qty:85, sold:0, visible:true},
+    {name:"Kodak Gold", qty:70, sold:0, visible:true},
+    {name:"Kodak ProImage", qty:12, sold:0, visible:true},
+    {name:"Kodak Ektar 100", qty:25, sold:0, visible:true},
+    {name:"Kodak Ektacolor Pro 400", qty:8, sold:0, visible:true},
+    {name:"Kodacolor 100", qty:15, sold:0, visible:true},
+    {name:"Kodacolor 200", qty:24, sold:0, visible:true},
+    {name:"Kodak Tri-X 400", qty:24, sold:0, visible:true},
+    {name:"Harman Phoenix Blue", qty:2, sold:0, visible:true},
+    {name:"Lucky 200 35mm", qty:17, sold:0, visible:true},
+    {name:"NC Wolfen 500", qty:16, sold:0, visible:true},
+    {name:"Reflx Lab 640T", qty:7, sold:0, visible:true},
   ]},
   {category:"120 FILM", items:[
-    {name:"Kodak Portra 400", qty:0, sold:0, visible:true},
-    {name:"Kodak Gold 200", qty:0, sold:0, visible:true},
-    {name:"Ilford HP5 400", qty:0, sold:0, visible:true},
+    {name:"Lucky SHD 400", qty:1, sold:0, visible:true},
+    {name:"Streetpan 400", qty:3, sold:0, visible:true},
+    {name:"Lucky 200", qty:1, sold:0, visible:true},
+    {name:"Gold", qty:10, sold:0, visible:true},
   ]},
-  {category:"COLOR 110 FILM", items:[
-    {name:"Lomo Purple", qty:0, sold:0, visible:true},
-    {name:"Lomo Lobster", qty:0, sold:0, visible:true},
+  {category:"127 FILM", items:[
+    {name:"Reflx Lab 127", qty:10, sold:0, visible:true},
   ]},
-  {category:"CAMERA", items:[
-    {name:"Reto 3D Black", qty:0, sold:0, visible:true},
-    {name:"Reto 3D White", qty:0, sold:0, visible:true},
+  {category:"MERCHANDISE", items:[
+    {name:"Film Capsule Keychain", qty:32, sold:0, visible:true},
+  ]},
+  {category:"DISPOSABLE CAMERA", items:[
+    {name:"Fujifilm QuickSnap", qty:0, sold:0, visible:true},
+  ]},
+  {category:"BATTERIES", items:[
+    {name:"GP CR2032", qty:16, sold:0, visible:true},
+    {name:"Panasonic CR-P2", qty:5, sold:0, visible:true},
+    {name:"Panasonic CR2", qty:10, sold:0, visible:true},
+    {name:"Panasonic CR123A", qty:15, sold:0, visible:true},
   ]},
 ];
 
 // ── STOCK TRACKER COMPONENT ───────────────────────────────
 function StockTracker() {
-  const [stock, setStock]         = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const cachedStock = readStockCache();
+  const [stock, setStock]         = useState(cachedStock || []);
+  const [loading, setLoading]     = useState(!cachedStock);
+  const [refreshing, setRefreshing] = useState(false);
+  const [stockRefreshStatus, setStockRefreshStatus] = useState("");
   const [saving, setSaving]       = useState(false);
   const [report, setReport]       = useState("");
   const [copied, setCopied]       = useState(false);
@@ -1609,6 +1656,12 @@ function StockTracker() {
   const [manageOpen, setManageOpen] = useState(false);
   const [manageNew, setManageNew] = useState({category:"", name:"", qty:"0"});
   const [manageSearch, setManageSearch] = useState("");
+  const [stockInDrafts, setStockInDrafts] = useState({});
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [stockHistory, setStockHistory] = useState(readLocalStockHistory());
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyNotice, setHistoryNotice] = useState("");
+  const [selectedHistory, setSelectedHistory] = useState(null);
 
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2500); };
   const remainingQty = item => Math.max(0, (item.qty || 0) - (item.sold || 0));
@@ -1619,6 +1672,7 @@ function StockTracker() {
       qty: Number(item.qty) || 0,
       sold: Number(item.sold) || 0,
       visible: item.visible !== false,
+      addedAt: item.addedAt || item.lastUpdated || new Date().toISOString(),
       lastUpdated: item.lastUpdated || ""
     }))
   }));
@@ -1633,22 +1687,48 @@ function StockTracker() {
   }));
 
   // Load stock from Sheets
-  useEffect(() => { loadStock(); }, []);
+  useEffect(() => { loadStock(false); }, []);
+  useEffect(() => { if(stock.length)writeStockCache(stock); }, [stock]);
 
-  async function loadStock() {
-    setLoading(true);
+  async function loadStock(forceRefresh=true) {
+    if(forceRefresh){setRefreshing(true);setStockRefreshStatus("working");}
+    else if(!cachedStock){setLoading(true);}
     try {
       const res = await apiCall("getStock");
+      if (res?.error) throw new Error(res.error);
       if (res && Array.isArray(res) && res.length > 0) {
-        setStock(normalizeStock(res));
+        const next = normalizeStock(res);
+        setStock(next);writeStockCache(next);
       } else {
-        setStock(normalizeStock(DEFAULT_STOCK));
+        const initialStock = normalizeStock(DEFAULT_STOCK);
+        const saved = await apiCall("saveStock", {stock: initialStock});
+        if (saved?.error || !saved?.success) throw new Error(saved?.error || "Initial stock could not be saved");
+        setStock(initialStock);writeStockCache(initialStock);
+        showToast("Initial stock setup saved ✓");
       }
     } catch(e) {
-      setStock(normalizeStock(DEFAULT_STOCK));
+      if(!cachedStock){const fallback=normalizeStock(DEFAULT_STOCK);setStock(fallback);writeStockCache(fallback);}
+      showToast(`Stock connection failed: ${e.message || e}`);
     }
     setLoading(false);
+    if(forceRefresh){setRefreshing(false);setStockRefreshStatus("done");setTimeout(()=>setStockRefreshStatus(""),1800);}
   }
+
+  async function loadStockHistory() {
+    setHistoryLoading(true);setHistoryNotice("");
+    try {
+      const serverHistory = requireApiSuccess(await apiCall("getStockHistory"),"Stock history could not be loaded");
+      const merged = [...(Array.isArray(serverHistory)?serverHistory:[]), ...readLocalStockHistory()]
+        .filter((entry,index,all)=>all.findIndex(x=>String(x.id)===String(entry.id))===index)
+        .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,30);
+      setStockHistory(merged);writeLocalStockHistory(merged);
+    } catch(e) {
+      const local = readLocalStockHistory();setStockHistory(local);
+      setHistoryNotice(local.length?"Showing locally saved history.":`History could not be loaded: ${e.message||e}`);
+    } finally {setHistoryLoading(false);}
+  }
+
+  useEffect(()=>{if(historyOpen)loadStockHistory();},[historyOpen]);
 
   function buildReportText(sourceStock=stock) {
     const now = new Date();
@@ -1675,11 +1755,11 @@ function StockTracker() {
     setSaving(true);
     try {
       const finalizedStock = finalizeStock(stock);
-      await apiCall("saveStock", {stock: finalizedStock});
-      setStock(finalizedStock);
+      requireApiSuccess(await apiCall("saveStock", {stock: finalizedStock}),"Apps Script did not confirm the save");
+      setStock(finalizedStock);writeStockCache(finalizedStock);
       showToast("Stock saved ✓");
     } catch(e) {
-      showToast("Save failed");
+      showToast(`Save failed: ${e.message || e}`);
     }
     setSaving(false);
   }
@@ -1688,13 +1768,23 @@ function StockTracker() {
     setSaving(true);
     try {
       const reportText = buildReportText(stock);
+      const beforeStock = normalizeStock(stock);
       const finalizedStock = finalizeStock(stock);
-      await apiCall("saveStock", {stock: finalizedStock});
-      setStock(finalizedStock);
+      let historyEntry;
+      try {
+        const result = requireApiSuccess(await apiCall("finalizeStock", {stock:finalizedStock,beforeStock,report:reportText}),"Apps Script did not confirm the save");
+        historyEntry = result.history;
+      } catch(e) {
+        if(!String(e.message||e).includes("Unknown action")) throw e;
+        requireApiSuccess(await apiCall("saveStock", {stock: finalizedStock}),"Apps Script did not confirm the save");
+        historyEntry={id:`local_${Date.now()}`,timestamp:new Date().toISOString(),action:"finalize",beforeStock,afterStock:finalizedStock,report:reportText,localOnly:true};
+      }
+      setStock(finalizedStock);writeStockCache(finalizedStock);
+      if(historyEntry){const next=[historyEntry,...readLocalStockHistory()].slice(0,30);setStockHistory(next);writeLocalStockHistory(next);}
       setReport(reportText);
       showToast("Stock saved and report generated");
     } catch(e) {
-      showToast("Save failed");
+      showToast(`Save failed: ${e.message || e}`);
     }
     setSaving(false);
   }
@@ -1706,17 +1796,21 @@ function StockTracker() {
         ...item, sold: Math.max(0, (item.sold || 0) + delta)
       })
     });
-    setStock(updated);
+    setStock(updated);writeStockCache(updated);
   }
 
   function setQty(catIdx, itemIdx, val) {
+    if(val===""){
+      const updated=stock.map((cat,ci)=>ci!==catIdx?cat:{...cat,items:cat.items.map((item,ii)=>ii!==itemIdx?item:{...item,sold:""})});
+      setStock(updated);writeStockCache(updated);return;
+    }
     const n = parseInt(val);
     if (isNaN(n) || n < 0) return;
     const updated = stock.map((cat, ci) => ci !== catIdx ? cat : {
       ...cat,
       items: cat.items.map((item, ii) => ii !== itemIdx ? item : {...item, sold: n})
     });
-    setStock(updated);
+    setStock(updated);writeStockCache(updated);
   }
 
   function setItemField(catIdx, itemIdx, field, val) {
@@ -1728,7 +1822,7 @@ function StockTracker() {
         return {...item, [field]: nextVal};
       })
     });
-    setStock(updated);
+    setStock(updated);writeStockCache(updated);
   }
 
   function setItemVisible(catIdx, itemIdx, visible) {
@@ -1736,7 +1830,7 @@ function StockTracker() {
       ...cat,
       items: cat.items.map((item, ii) => ii !== itemIdx ? item : {...item, visible})
     });
-    setStock(updated);
+    setStock(updated);writeStockCache(updated);
   }
 
   function setItemCategory(catIdx, itemIdx, newCategory) {
@@ -1769,10 +1863,18 @@ function StockTracker() {
     setAddingTo(null);
   }
 
-  function addManagedItem() {
+  async function persistManagedStock(next,message) {
+    setStock(next);writeStockCache(next);setSaving(true);
+    try {requireApiSuccess(await apiCall("saveStock",{stock:next}),"Stock item change could not be saved");showToast(message);}
+    catch(e){showToast(`Save failed: ${e.message||e}`);}
+    finally{setSaving(false);}
+  }
+
+  async function addManagedItem() {
     const category = manageNew.category.trim().toUpperCase();
     const name = manageNew.name.trim();
     if (!category || !name) return;
+    if(stock.some(cat=>cat.category===category&&(cat.items||[]).some(item=>item.name.trim().toLowerCase()===name.toLowerCase()))){showToast("That stock item already exists");return;}
     const qty = Math.max(0, parseInt(manageNew.qty) || 0);
     let added = false;
     const updated = stock.map(cat => {
@@ -1780,8 +1882,24 @@ function StockTracker() {
       added = true;
       return {...cat, items:[...cat.items, {name, qty, sold:0, visible:true}]};
     });
-    setStock(added ? updated : [...updated, {category, items:[{name, qty, sold:0, visible:true}]}]);
+    const next=added ? updated : [...updated, {category, items:[{name, qty, sold:0, visible:true,addedAt:new Date().toISOString()}]}];
+    await persistManagedStock(next,"Stock item added and synced");
     setManageNew({category:"", name:"", qty:"0"});
+  }
+
+  async function addStockToManagedItem(catIdx,itemIdx) {
+    const key=`${catIdx}:${itemIdx}`,amount=Math.max(0,parseInt(stockInDrafts[key])||0);
+    if(!amount)return;
+    const stamp=new Date().toISOString();
+    const next=stock.map((cat,ci)=>ci!==catIdx?cat:{...cat,items:cat.items.map((item,ii)=>ii!==itemIdx?item:{...item,qty:(Number(item.qty)||0)+amount,lastUpdated:stamp})});
+    setStockInDrafts(d=>({...d,[key]:""}));
+    await persistManagedStock(next,`Added ${amount} to stock and synced`);
+  }
+
+  async function removeManagedItem(catIdx,itemIdx) {
+    if(!window.confirm(`Remove ${stock[catIdx]?.items?.[itemIdx]?.name||"this item"} from stock?`))return;
+    const next=stock.map((cat,ci)=>ci!==catIdx?cat:{...cat,items:cat.items.filter((_,ii)=>ii!==itemIdx)}).filter(cat=>cat.items.length);
+    await persistManagedStock(next,"Stock item removed and synced");
   }
 
   function addCategory() {
@@ -1829,7 +1947,7 @@ function StockTracker() {
       {/* Header row */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
         <div>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontStyle:"italic",color:"var(--white)"}}>
+          <div className="stock-heading" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontStyle:"italic",color:"var(--white)"}}>
             Stock Count
           </div>
           <div style={{fontSize:9,letterSpacing:"0.35em",textTransform:"uppercase",color:"var(--muted)",marginTop:4}}>
@@ -1837,6 +1955,10 @@ function StockTracker() {
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>loadStock(true)} disabled={refreshing||saving}
+            style={{...css.btn("ghost"),padding:"10px 18px",minWidth:128,opacity:refreshing?0.55:1}}>
+            {stockRefreshStatus==="working"?"Refreshing...":stockRefreshStatus==="done"?"All synced!":"↻ Refresh Stock"}
+          </button>
           <button onClick={finalizeAndGenerateReport} disabled={saving}
             style={{...css.btn("blue"),padding:"10px 18px",opacity:saving?0.5:1}}>
             {saving?"Saving...":"Finalize + Save Report"}
@@ -1884,7 +2006,7 @@ function StockTracker() {
                       style={{...css.btn("ghost"),padding:"4px 10px",fontSize:14,lineHeight:1,
                               minWidth:32,textAlign:"center"}}>−</button>
                     <input
-                      type="number" value={item.sold||0} min="0"
+                      type="number" value={item.sold===0?"":item.sold} min="0" placeholder="0"
                       onChange={e=>setQty(catIdx,itemIdx,e.target.value)}
                       style={{width:52,textAlign:"center",padding:"6px 4px",
                               fontSize:14,fontWeight:600,color:"var(--white)"}}/>
@@ -1949,6 +2071,44 @@ function StockTracker() {
         </div>
       </div>
 
+      {/* Stock history */}
+      <div style={{...css.card,marginBottom:16,padding:0,overflow:"hidden"}}>
+        <button onClick={()=>setHistoryOpen(v=>!v)}
+          style={{width:"100%",background:"var(--card2)",border:"none",borderBottom:historyOpen?"1px solid var(--border)":"none",
+                  padding:"13px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontSize:10,fontWeight:600,letterSpacing:"0.3em",textTransform:"uppercase",color:"var(--blue-l)"}}>Stock History</span>
+          <span style={{fontSize:18,color:"var(--muted)",lineHeight:1}}>{historyOpen?"−":"+"}</span>
+        </button>
+        {historyOpen&&(
+          <div style={{padding:16}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <span style={{fontSize:10,color:"var(--muted)"}}>Recent finalize snapshots, with stock before and after each save.</span>
+              <button onClick={loadStockHistory} disabled={historyLoading} style={{...css.btn("ghost"),padding:"8px 13px",fontSize:9}}>
+                {historyLoading?"Refreshing...":"↻ Refresh"}
+              </button>
+            </div>
+            {historyNotice&&<div style={{fontSize:10,color:"var(--muted)",marginBottom:10}}>{historyNotice}</div>}
+            {!historyLoading&&!stockHistory.length&&<div style={{padding:22,textAlign:"center",fontSize:10,color:"var(--dim)"}}>No stock snapshots yet.</div>}
+            {!!stockHistory.length&&(
+              <div style={{display:"grid",gridTemplateColumns:"260px 1fr",gap:12}}>
+                <div style={{display:"flex",flexDirection:"column",gap:7,maxHeight:360,overflowY:"auto"}}>
+                  {stockHistory.map(entry=>{
+                    const when=new Date(entry.timestamp);
+                    const sold=(entry.beforeStock||[]).reduce((sum,cat)=>sum+(cat.items||[]).reduce((s,item)=>s+(Number(item.sold)||0),0),0);
+                    const items=(entry.afterStock||[]).reduce((sum,cat)=>sum+(cat.items||[]).length,0);
+                    return <button key={entry.id} onClick={()=>setSelectedHistory(entry)} style={{textAlign:"left",padding:"10px 12px",background:selectedHistory?.id===entry.id?"var(--card2)":"var(--dark)",border:"1px solid var(--border)",borderLeft:"3px solid #e9a726",color:"var(--white)"}}>
+                      <div style={{fontSize:12,fontWeight:600}}>{when.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})} · {when.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}</div>
+                      <div style={{fontSize:9,color:"var(--muted)",marginTop:4}}>Sold entered: {sold} · Items: {items}</div>
+                    </button>;
+                  })}
+                </div>
+                {(()=>{const entry=selectedHistory||stockHistory[0];if(!entry)return null;const renderSnapshot=(snapshot,title)=><div style={{background:"var(--dark)",border:"1px solid var(--border)",padding:12,maxHeight:220,overflowY:"auto"}}><div style={{fontSize:9,letterSpacing:".22em",textTransform:"uppercase",color:"var(--blue-l)",marginBottom:8}}>{title}</div>{(snapshot||[]).map(cat=><div key={cat.category} style={{marginBottom:9}}><div style={{fontSize:9,fontWeight:600,color:"var(--blue-l)",letterSpacing:".14em"}}>{cat.category}</div>{(cat.items||[]).filter(i=>i.visible!==false).map(item=><div key={item.name} style={{display:"flex",justifyContent:"space-between",fontSize:10,lineHeight:1.6}}><span>{item.name}</span><span>{item.qty}{Number(item.sold)?` / sold ${item.sold}`:""}</span></div>)}</div>)}</div>;return <div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{renderSnapshot(entry.beforeStock,"Before Save")}{renderSnapshot(entry.afterStock,"After Save")}</div>{entry.report&&<pre style={{marginTop:10,padding:12,background:"var(--dark)",border:"1px solid var(--border)",whiteSpace:"pre-wrap",fontSize:10,lineHeight:1.6,color:"var(--light)"}}>{entry.report}</pre>}</div>;})()}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Manage items */}
       <div style={{...css.card,marginBottom:16,padding:0,overflow:"hidden"}}>
         <button onClick={()=>setManageOpen(v=>!v)}
@@ -1994,7 +2154,7 @@ function StockTracker() {
                 })
                 .map(({cat, catIdx, item, itemIdx}) => (
                 <div key={`${cat.category}-${itemIdx}-${item.name}`} style={{
-                  display:"grid",gridTemplateColumns:"1.4fr 1fr 78px 92px",gap:8,alignItems:"center",
+                  display:"grid",gridTemplateColumns:"1.35fr 1fr 70px 118px 82px 36px",gap:8,alignItems:"center",
                   background:"var(--dark)",border:"1px solid var(--border)",borderRadius:2,padding:8,
                   opacity:item.visible===false?0.62:1
                 }}>
@@ -2008,10 +2168,20 @@ function StockTracker() {
                   <input type="number" min="0" value={item.qty || 0}
                     onChange={e=>setItemField(catIdx,itemIdx,"qty",e.target.value)}
                     style={{padding:"7px 9px",fontSize:12,textAlign:"center"}}/>
+                  <div style={{display:"flex",gap:4}}>
+                    <input type="number" min="0" value={stockInDrafts[`${catIdx}:${itemIdx}`]||""}
+                      onChange={e=>setStockInDrafts(d=>({...d,[`${catIdx}:${itemIdx}`]:e.target.value}))}
+                      onKeyDown={e=>e.key==="Enter"&&addStockToManagedItem(catIdx,itemIdx)} placeholder="Stock in"
+                      style={{width:70,padding:"7px 6px",fontSize:11,textAlign:"center"}}/>
+                    <button onClick={()=>addStockToManagedItem(catIdx,itemIdx)} disabled={saving}
+                      style={{...css.btn("blue"),padding:"7px 9px",fontSize:11}}>+</button>
+                  </div>
                   <button onClick={()=>setItemVisible(catIdx,itemIdx,item.visible===false)}
                     style={{...css.btn(item.visible===false?"green":"ghost"),padding:"8px 10px",fontSize:9}}>
                     {item.visible===false?"Restore":"Hide"}
                   </button>
+                  <button onClick={()=>removeManagedItem(catIdx,itemIdx)} disabled={saving} title="Remove item"
+                    style={{...css.btn("ghost"),padding:"7px",fontSize:14,color:"var(--red)"}}>×</button>
                 </div>
               )))}
             </div>
