@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Saujana - Darkroom Dispatch</title>
+<title>Grain Brain — Saujana Film Lab KL</title>
   
-  <link rel="icon" type="image/png" href="dd-icon.png" />
-  <link rel="apple-touch-icon" href="dd-icon.png" />
+  <link rel="icon" type="image/png" href="gb-icon.png" />
+  <link rel="apple-touch-icon" href="gb-icon.png" />
 
-  <meta property="og:title" content="Saujana - Darkroom Dispatch" />
-  <meta property="og:description" content="Film Lab KL · Operations Dashboard" />
-  <meta property="og:image" content="https://darkroom.saujanalab.com/dd-icon.png" />
+  <meta property="og:title" content="Grain Brain — Saujana Film Lab KL" />
+  <meta property="og:description" content="Film Lab KL · Dispatch Operations" />
+  <meta property="og:image" content="https://darkroom.saujanalab.com/gb-icon.png" />
   <meta property="og:url" content="https://darkroom.saujanalab.com/" />
   <meta property="og:type" content="website" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
@@ -19,7 +19,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    :root{
+:root{
   --black:#080a0f;--dark:#0d1117;--card:#111720;--card2:#161e2a;
   --border:#1e2d42;--border2:#253448;
   --blue:#1a6fa8;--blue-l:#2a8fd0;--blue-gl:#1b3a5c;--ocean:#0e4d7a;
@@ -27,6 +27,24 @@
   --white:#f4f6fa;--light:#c8d4e0;--muted:#5a7080;--dim:#2a3a4a;
   --green:#25d366;--greenD:#0d1f12;--greenB:#1a4028;--greenT:#5dd88a;
   --red:#e05040;
+}
+
+body[data-theme="light"]{
+  --black:#f5f3ee;--dark:#ebe7df;--card:#ffffff;--card2:#f0ece4;
+  --border:#d8d0c3;--border2:#c8bdad;
+  --blue:#17618f;--blue-l:#1d79b5;--blue-gl:#dcecf6;--ocean:#1c6f9c;
+  --gold:#a8791e;--gold-l:#f4c542;
+  --white:#171a20;--light:#35404a;--muted:#6c756f;--dim:#a99f91;
+  --green:#128a43;--greenD:#e2f3e7;--greenB:#b8dcc5;--greenT:#167640;
+  --red:#c83f32;
+}
+
+.brand-logo{
+  transition:filter .2s ease;
+}
+
+body[data-theme="light"] .brand-logo{
+  filter:invert(1) contrast(1.15);
 }
 
 @keyframes logoReveal {
@@ -80,6 +98,7 @@ body {
   font-family:'Montserrat',sans-serif;
   font-weight:300;
   min-height:100vh;
+  transition:background .2s ease,color .2s ease;
 }
 
 ::-webkit-scrollbar{width:4px;}
@@ -112,25 +131,35 @@ const { useState, useEffect, useRef, useCallback } = React;
 const API = "https://script.google.com/macros/s/AKfycbxEw_UH2VX2nDF--Ic8O33DBPRipp6fB46BH5Gb1xYSrP5WpAdOSi1X1p4OuD-GV55H/exec";
 const BASE_URL = "https://scans.saujanalab.com";
 const PASSWORD = "8888";
+const AUTH_KEY = "grain-brain-auth";
+const CACHE_KEY = "grain-brain-dispatch-cache-v1";
+const API_TIMEOUTS = {default:20000,getInitialData:12000,getCustomers:12000,getOrders:12000,addOrder:35000,createFolder:45000};
+const RETRY_ACTIONS = new Set(["getInitialData","getCustomers","getOrders","addOrder","createFolder"]);
+const RETRY_DELAYS = [600,1600,3600];
+
+function readCache(){try{const v=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");return v&&Array.isArray(v.customers)&&Array.isArray(v.orders)?v:null}catch(e){return null}}
+function writeCache(customers,orders){try{localStorage.setItem(CACHE_KEY,JSON.stringify({customers,orders,savedAt:Date.now()}))}catch(e){}}
+function cleanOrderNumber(value){return String(value??"").trim().toUpperCase()}
 
 async function apiCall(action, data=null) {
-  try {
-    if (data) {
-      const r = await fetch(`${API}?action=${action}`, {
-        method: "POST", 
-        redirect: "follow",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        },
-        body: JSON.stringify(data)
-      });
-      return await r.json();
-    }
-    // For GET requests when no data is passed
-    return await (await fetch(`${API}?action=${action}`)).json();
-  } catch(e) { 
-    return {error: e.toString()}; 
+  const attempts=RETRY_ACTIONS.has(action)?RETRY_DELAYS.length+1:1;
+  let lastError;
+  for(let attempt=0;attempt<attempts;attempt++){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),API_TIMEOUTS[action]||API_TIMEOUTS.default);
+    try{
+      const url=`${API}?action=${encodeURIComponent(action)}&_=${Date.now()}`;
+      const response=await fetch(url,data?{method:"POST",redirect:"follow",cache:"no-store",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(data),signal:controller.signal}:{cache:"no-store",signal:controller.signal});
+      const text=await response.text();
+      let result; try{result=JSON.parse(text)}catch(e){throw new Error(`Google Sheets returned an invalid response for ${action}`)}
+      if(!response.ok||result?.retryable){throw new Error(result?.error||`Request failed (${response.status})`)}
+      return result;
+    }catch(e){
+      lastError=e;
+      if(attempt<attempts-1) await new Promise(resolve=>setTimeout(resolve,RETRY_DELAYS[attempt]));
+    }finally{clearTimeout(timer)}
   }
+  return {error:lastError?.name==="AbortError"?"The request timed out. Please retry.":(lastError?.message||String(lastError))};
 }
 const fmtDate = ts => ts ? new Date(ts).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}) : "-";
 const fmtDT   = ts => {
@@ -147,8 +176,16 @@ const deliveryUrl = o => {
   const film     = (o.film || "").toString();
   const link     = (o.driveLink || "").toString();
   // Notes excluded from URL — fetched from Sheets by delivery page
-  return `${BASE_URL}/?order=${encodeURIComponent(orderNum)}&name=${encodeURIComponent(name)}&film=${encodeURIComponent(film)}&link=${encodeURIComponent(link)}`;
+  const theme=(o.deliveryTheme||"colour").toString();
+  const negative=theme==="bw"||theme==="classic"?theme:"colour";
+  return `${BASE_URL}/?theme=bali&negative=${encodeURIComponent(negative)}&order=${encodeURIComponent(orderNum)}&name=${encodeURIComponent(name)}&film=${encodeURIComponent(film)}&link=${encodeURIComponent(link)}`;
 };
+
+const DELIVERY_THEME_OPTIONS = [
+  {value:"colour", label:"Colour Negative", accent:"#ff6425", paper:"#f3c3a2", surface:"#180b06"},
+  {value:"bw", label:"Black & White", accent:"#eeeae2", paper:"#f3f1eb", surface:"#111111"},
+  {value:"classic", label:"Classic", accent:"#c9a15c", paper:"#ece7db", surface:"#111315"}
+];
 
 async function getShortLink(longUrl) {
   // is.gd supports CORS natively — no proxy needed, fast and reliable
@@ -199,7 +236,7 @@ function LockScreen({onUnlock}) {
   const [err, setErr] = useState("");
 
   function check() {
-    if (pw === PASSWORD) { sessionStorage.setItem("saujana-auth","1"); onUnlock(); }
+    if (pw === PASSWORD) { sessionStorage.setItem(AUTH_KEY,"1"); onUnlock(); }
     else { setErr("Incorrect password"); setPw(""); setTimeout(()=>setErr(""),2500); }
   }
 
@@ -216,8 +253,8 @@ function LockScreen({onUnlock}) {
 
     <div style={{textAlign:"center", marginBottom:40}}>
       <img
-        src="saujana-dd.png"
-        alt="Darkroom Dispatch Logo"
+        src="grainbrain-logo-transparent.png"
+        alt="Grain Brain"
         style={{
   height:180,
   maxWidth:"100%",
@@ -300,12 +337,16 @@ function LockScreen({onUnlock}) {
   </div>
 );
 }
-function Dispatch({customers, orders=[], onOrderSaved, prefill, clearPrefill}) {
+function Dispatch({customers, orders=[], onOrderSaved, prefill, clearPrefill, resetSignal}) {
   const [orderNo, setOrderNo]     = useState("");
   const [custInput, setCustInput] = useState("");
   const [selCust, setSelCust]     = useState(null);
   const [custEmail, setCustEmail] = useState("");
+  const [extraEmails, setExtraEmails] = useState([]);
   const [custPhone, setCustPhone] = useState("");
+  const [deliveryName, setDeliveryName] = useState("");
+  const [customDeliveryName, setCustomDeliveryName] = useState(false);
+  const [deliveryTheme, setDeliveryTheme] = useState("colour");
   const [rolls, setRolls]         = useState([""]);
   const [driveLink, setDriveLink] = useState("");
   const [notes, setNotes]         = useState("");
@@ -318,10 +359,18 @@ function Dispatch({customers, orders=[], onOrderSaved, prefill, clearPrefill}) {
   const [orderSearch, setOrderSearch] = useState("");
   const dropRef = useRef();
 
+  function resetOrderForm(){
+    setOrderNo("");setCustInput("");setSelCust(null);setCustEmail("");setExtraEmails([]);setCustPhone("");
+    setDeliveryName("");setCustomDeliveryName(false);setDeliveryTheme("colour");setRolls([""]);setDriveLink("");setNotes("");
+    setResult(null);setGenerating(false);setCreatingFolder(false);setShowDrop(false);setCopied({});setOrderSearch("");
+  }
+  useEffect(()=>{if(resetSignal) resetOrderForm()},[resetSignal]);
+
   useEffect(() => {
     if (prefill) {
       setSelCust(prefill);
       setCustInput(prefill.name || "");
+      setDeliveryName(prefill.name || "");
       setCustEmail(prefill.email || "");
       setCustPhone(prefill.phone || "");
       if (clearPrefill) clearPrefill();
@@ -361,8 +410,11 @@ const isNewCustomer =
 
  function clearCust() {
   setSelCust(null);
-  setCustInput("");
+ setCustInput("");
+  setDeliveryName("");
+  setCustomDeliveryName(false);
   setCustEmail("");
+  setExtraEmails([]);
   setCustPhone("");
 }
 
@@ -371,7 +423,9 @@ function selectCust(c) {
 
   setSelCust(c);
   setCustInput(c.name);
+  setDeliveryName(c.name || "");
   setCustEmail(c.email);
+  setExtraEmails([]);
   setCustPhone(c.phone || "");
   setShowDrop(false);
 }
@@ -463,21 +517,34 @@ function addRoll() {
     if (!orderNo.trim()||!film||!driveLink.trim()) return;
     setGenerating(true);
     
-    const name = selCust ? selCust.name : (custInput.trim() || "Customer");
+    const registryName = selCust ? selCust.name : (custInput.trim() || "Customer");
+    const name = customDeliveryName && deliveryName.trim() ? deliveryName.trim() : registryName;
 
 const order = {
   orderNumber: String(orderNo || "").trim().toUpperCase(),
   customerName: name,
+  deliveryName: name,
+  registryCustomerName: registryName,
   film,
   notes: notes.trim(),
+  deliveryTheme,
+  deliveryDate: new Date().toISOString(),
+  recipientEmails: [custEmail,...extraEmails].map(v=>v.trim()).filter(Boolean).join(", "),
   driveLink: driveLink.trim()
 };
 
 const longUrl = deliveryUrl(order); 
 const saved = await apiCall("addOrder", {
   ...order,
-  customerId: selCust?.id || ""
+  customerId: selCust?.id || "",
+  customerName: registryName
 });
+
+if (!saved || saved.error) {
+  setGenerating(false);
+  showToast(saved?.error || "Could not save this order");
+  return;
+}
 
 onOrderSaved({ ...saved, ...order }, selCust?.id);
 
@@ -518,7 +585,8 @@ const shortUrl = await getShortLink(longUrl, order.orderNumber);
     const bodyWithNotes = r.notes
       ? encodeURIComponent(decodeURIComponent(body).replace(`Order: ${r.orderNumber}\n\nPlease`, `Order: ${r.orderNumber}${emailNotesText(r)}\n\nPlease`))
       : body;
-    window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${custEmail?encodeURIComponent(custEmail):""}&su=${sub}&body=${bodyWithNotes}`,"_blank");
+    const recipients=[custEmail,...extraEmails].map(v=>v.trim()).filter(Boolean).join(",");
+    window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(recipients)}&su=${sub}&body=${bodyWithNotes}`,"_blank");
   }
 
   function copyWhatsApp() {
@@ -538,9 +606,9 @@ function sendViaWhatsApp() {
 
   let phone = custPhone.replace(/\D/g, "");
 
-  // Indonesia local number → international
+  // Malaysia local number → international
   if (phone.startsWith("0")) {
-    phone = "62" + phone.slice(1);
+    phone = "60" + phone.slice(1);
   }
 
   const text = `Hi ${result.custName}! Your scans are ready 🎞️
@@ -693,6 +761,59 @@ setSelCust(customer);
     onChange={e=>setCustEmail(e.target.value)}
     placeholder="Auto-filled or enter customer email"
   />
+  {extraEmails.map((email,index)=>(
+    <div key={index} style={{display:"flex",gap:8,marginTop:8}}>
+      <input value={email} onChange={e=>setExtraEmails(list=>list.map((v,i)=>i===index?e.target.value:v))} placeholder="Additional recipient"/>
+      <button onClick={()=>setExtraEmails(list=>list.filter((_,i)=>i!==index))} style={{...css.btn("ghost"),padding:"0 10px"}}>×</button>
+    </div>
+  ))}
+  <button onClick={()=>setExtraEmails(list=>[...list,""])} style={{...css.btn("ghost"),padding:"5px 10px",fontSize:9,marginTop:8}}>+ Recipient</button>
+</div>
+
+<div style={{marginBottom:18}}>
+  <label style={{display:"flex",gap:8,alignItems:"center",fontSize:10,color:"var(--muted)",marginBottom:8}}>
+    <input type="checkbox" checked={customDeliveryName} onChange={e=>setCustomDeliveryName(e.target.checked)} style={{width:"auto"}}/>
+    Use a different name on the delivery page
+  </label>
+  {customDeliveryName&&<input value={deliveryName} onChange={e=>setDeliveryName(e.target.value)} placeholder="Delivery display name"/>}
+</div>
+
+<div style={{marginBottom:18}}>
+  <label style={css.label}>Delivery Theme</label>
+  <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:7}}>
+    {DELIVERY_THEME_OPTIONS.map(option=>{
+      const selected=deliveryTheme===option.value;
+      return (
+        <button
+          key={option.value}
+          type="button"
+          aria-pressed={selected}
+          onClick={()=>setDeliveryTheme(option.value)}
+          style={{
+            padding:"0 0 11px",
+            overflow:"hidden",
+            background:selected?option.surface:"var(--dark)",
+            border:`1px solid ${selected?option.accent:"var(--border)"}`,
+            color:selected?option.paper:"var(--muted)",
+            fontFamily:"'Montserrat',sans-serif",
+            fontSize:8,
+            fontWeight:selected?700:500,
+            letterSpacing:".08em",
+            lineHeight:1.35,
+            textTransform:"uppercase",
+            cursor:"pointer",
+            transition:"border-color .18s ease,background .18s ease,color .18s ease"
+          }}
+        >
+          <span aria-hidden="true" style={{display:"block",height:5,marginBottom:10,background:option.accent}}/>
+          {option.label}
+        </button>
+      );
+    })}
+  </div>
+  <div style={{fontSize:8.5,color:"var(--dim)",lineHeight:1.55,marginTop:7}}>
+    Sets the customer delivery page look.
+  </div>
 </div>
 
 {/* Phone */}
@@ -832,7 +953,7 @@ setSelCust(customer);
     e.currentTarget.style.color = "var(--muted)";
   }}
 >
-  {creatingFolder ? "Creating..." : " Create Drive Folder"}
+  {creatingFolder ? "Creating…" : "📁 Create Drive Folder"}
 </button>
   </div>
   
@@ -1300,28 +1421,34 @@ async function updateCustomerInfo() {
 }
 
 function App() {
-  const [authed, setAuthed]       = useState(sessionStorage.getItem("saujana-auth")==="1");
+  const cached=readCache();
+  const [authed, setAuthed]       = useState(sessionStorage.getItem(AUTH_KEY)==="1");
+  const [theme, setTheme]         = useState(localStorage.getItem("grain-brain-theme")||"night");
   const [tab, setTab]             = useState("dispatch");
-  const [customers, setCustomers] = useState([]);
-  const [orders, setOrders]       = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [customers, setCustomers] = useState(cached?.customers||[]);
+  const [orders, setOrders]       = useState(cached?.orders||[]);
+  const [loading, setLoading]     = useState(!cached);
   const [syncing, setSyncing]     = useState(false);
   const [prefill, setPrefill]     = useState(null);
+  const [resetSignal, setResetSignal] = useState(0);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(()=>{
+    document.body.setAttribute("data-theme",theme==="day"?"light":"dark");
+    localStorage.setItem("grain-brain-theme",theme);
+  },[theme]);
 
   async function load() {
-  setLoading(true);
-
-  const [c, o] = await Promise.all([
-    apiCall("getCustomers"),
-    apiCall("getOrders")
-  ]);
-
-  console.log("CUSTOMERS API:", c);
-
-  setCustomers(Array.isArray(c) ? c : []);
-  setOrders(Array.isArray(o) ? o : []);
-
-  setLoading(false);
+  setLoading(customers.length===0&&orders.length===0);setSyncing(true);setLoadError("");
+  try{
+    const combined=await apiCall("getInitialData");
+    let c,o;
+    if(Array.isArray(combined?.customers)&&Array.isArray(combined?.orders)){c=combined.customers;o=combined.orders}
+    else {[c,o]=await Promise.all([apiCall("getCustomers"),apiCall("getOrders")])}
+    if(!Array.isArray(c)||!Array.isArray(o)) throw new Error(c?.error||o?.error||combined?.error||"Unexpected response");
+    setCustomers(c);setOrders(o);writeCache(c,o);
+  }catch(e){setLoadError(`Could not refresh Google Sheets: ${e.message||e}`)}
+  finally{setLoading(false);setSyncing(false)}
 }
 
   useEffect(()=>{ if(authed) load(); },[authed]);
@@ -1353,7 +1480,7 @@ function App() {
   }
 
   function handleOrderSaved(saved, custId) {
-    setOrders(p=>[{...saved,createdAt:Date.now()},...p]);
+    setOrders(p=>{const next=[{...saved,createdAt:Date.now()},...p];writeCache(customers,next);return next});
     if (custId) {
       setCustomers(p=>p.map(c=>c.id===custId
         ?{...c,totalOrders:(c.totalOrders||0)+1,lastOrderDate:Date.now()}:c));
@@ -1363,6 +1490,8 @@ function App() {
   function handleNewOrderFor(c) {
     setPrefill(c); setTab("dispatch");
   }
+
+  function handleNewOrder(){setPrefill(null);setTab("dispatch");setResetSignal(v=>v+1)}
 
   if (!authed) return <LockScreen onUnlock={()=>setAuthed(true)}/>;
 
@@ -1374,21 +1503,28 @@ function App() {
         <div style={{maxWidth:1100,margin:"0 auto"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:14}}>
             <div>
-              <img src="dd-horizontal.png" alt="Darkroom Dispatch Logo" style={{height:45, objectFit:"contain", display:"block"}}/>
+              <img className="brand-logo" src="saujana-gb.png" alt="Grain Brain" style={{height:45, maxWidth:360, objectFit:"contain", display:"block"}}/>
               <div style={{fontSize:8,letterSpacing:"0.4em",textTransform:"uppercase",color:"var(--muted)",marginTop:8}}>
                 Film Lab Kuala Lumpur · Operations
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:12}}>
               {syncing&&<span style={{fontSize:9,color:"var(--muted)",letterSpacing:"0.2em",textTransform:"uppercase"}}>Syncing...</span>}
-              <button onClick={load} style={{...css.btn("ghost"),padding:"6px 12px",fontSize:9}}>↻ Refresh</button>
+              <button
+                onClick={()=>setTheme(v=>v==="day"?"night":"day")}
+                style={{...css.btn("ghost"),padding:"6px 12px",fontSize:9,minWidth:82}}
+              >
+                Theme: {theme==="day"?"☀️":"🌙"}
+              </button>
+              <button onClick={handleNewOrder} style={{...css.btn("blue"),padding:"6px 12px",fontSize:9}}>+ New Order</button>
+              <button onClick={load} disabled={syncing} style={{...css.btn("ghost"),padding:"6px 12px",fontSize:9}}>↻ Refresh</button>
               <span style={{fontSize:9,color:"var(--dim)",letterSpacing:"0.2em",textTransform:"uppercase"}}>
                 {customers.length} customers · {orders.length} orders
               </span>
             </div>
           </div>
           <div style={{display:"flex",marginTop:10}}>
-            {[{id:"dispatch",l:"Darkroom Dispatch"},{id:"registry",l:"Customer Registry"},{id:"stock",l:"Stock Count"}].map(t=>(
+            {[{id:"dispatch",l:"Scan Dispatch"},{id:"registry",l:"Customer Registry"},{id:"stock",l:"Stock Count"}].map(t=>(
               <button key={t.id} onClick={()=>setTab(t.id)} style={{
                 padding:"10px 24px",background:"none",
                 border:"none",borderBottom:`2px solid ${tab===t.id?"var(--blue-l)":"transparent"}`,
@@ -1403,6 +1539,7 @@ function App() {
 
       {/* Content */}
       <div style={{maxWidth:1100,margin:"0 auto",padding:"20px 24px"}}>
+        {loadError&&<div style={{marginBottom:12,padding:12,border:"1px solid var(--red)",color:"var(--light)"}}>{loadError}</div>}
         {loading ? (
           <div style={{textAlign:"center",padding:80,fontSize:11,letterSpacing:"0.3em",
                        textTransform:"uppercase",color:"var(--dim)"}}>
@@ -1410,7 +1547,7 @@ function App() {
           </div>
         ) : tab==="dispatch" ? (
           <Dispatch customers={customers} orders={orders} onOrderSaved={handleOrderSaved}
-            prefill={prefill} clearPrefill={()=>setPrefill(null)}/>
+            prefill={prefill} clearPrefill={()=>setPrefill(null)} resetSignal={resetSignal}/>
         ) : tab==="registry" ? (
   <Registry customers={customers} orders={orders}
     onAdd={handleAdd} onUpdate={handleUpdate} onDelete={handleDelete}
@@ -1910,4 +2047,3 @@ ReactDOM.render(<App/>, document.getElementById("root"));
 </script>
 </body>
 </html>
-
