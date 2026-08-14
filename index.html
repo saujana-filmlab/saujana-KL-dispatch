@@ -203,15 +203,15 @@ const deliveryUrl = o => {
   const film     = (o.film || "").toString();
   const link     = (o.driveLink || "").toString();
   // Notes excluded from URL — fetched from Sheets by delivery page
-  const theme=(o.deliveryTheme||"colour").toString();
+  const theme=(o.deliveryTheme||"classic").toString();
   const negative=theme==="bw"||theme==="classic"?theme:"colour";
   return `${BASE_URL}/?theme=bali&negative=${encodeURIComponent(negative)}&order=${encodeURIComponent(orderNum)}&name=${encodeURIComponent(name)}&film=${encodeURIComponent(film)}&link=${encodeURIComponent(link)}`;
 };
 
 const DELIVERY_THEME_OPTIONS = [
-  {value:"colour", label:"Colour Negative", accent:"#ff6425", paper:"#f3c3a2", surface:"#180b06"},
-  {value:"bw", label:"Black & White", accent:"#eeeae2", paper:"#f3f1eb", surface:"#111111"},
-  {value:"classic", label:"Classic", accent:"#c9a15c", paper:"#ece7db", surface:"#111315"}
+  {value:"classic", label:"Saujana Green", accent:"#02c96d", paper:"#075b35", surface:"#ffffff"},
+  {value:"colour", label:"Color Negative", accent:"#ff6425", paper:"#f3c3a2", surface:"#180b06"},
+  {value:"bw", label:"Classic", accent:"#eeeae2", paper:"#f3f1eb", surface:"#111111"}
 ];
 
 async function getShortLink(longUrl) {
@@ -373,7 +373,7 @@ function Dispatch({customers, orders=[], onOrderSaved, prefill, clearPrefill, re
   const [custPhone, setCustPhone] = useState("");
   const [deliveryName, setDeliveryName] = useState("");
   const [customDeliveryName, setCustomDeliveryName] = useState(false);
-  const [deliveryTheme, setDeliveryTheme] = useState("colour");
+  const [deliveryTheme, setDeliveryTheme] = useState("classic");
   const [rolls, setRolls]         = useState([""]);
   const [driveLink, setDriveLink] = useState("");
   const [notes, setNotes]         = useState("");
@@ -388,7 +388,7 @@ function Dispatch({customers, orders=[], onOrderSaved, prefill, clearPrefill, re
 
   function resetOrderForm(){
     setOrderNo("");setCustInput("");setSelCust(null);setCustEmail("");setExtraEmails([]);setCustPhone("");
-    setDeliveryName("");setCustomDeliveryName(false);setDeliveryTheme("colour");setRolls([""]);setDriveLink("");setNotes("");
+    setDeliveryName("");setCustomDeliveryName(false);setDeliveryTheme("classic");setRolls([""]);setDriveLink("");setNotes("");
     setResult(null);setGenerating(false);setCreatingFolder(false);setShowDrop(false);setCopied({});setOrderSearch("");
   }
   useEffect(()=>{if(resetSignal) resetOrderForm()},[resetSignal]);
