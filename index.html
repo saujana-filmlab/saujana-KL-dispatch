@@ -598,7 +598,7 @@ const shortUrl = await getShortLink(longUrl, order.orderNumber);
   async function copyRich() {
     if (!result) return;
     const r = result;
-    const html = `<p>Hi <strong>${r.custName}</strong>! Your scans are ready 🎞️</p><br><p><strong>Order Number: ${r.orderNumber}</strong></p><br><p>Please click the link below to access your scans:</p><br><p><a href="${r.url}"><strong>Get your scans here →</strong></a></p><br><p>Link active for <strong>7 days</strong>. Quote order number when collecting negatives.</p><br><p>Questions? <a href="https://wa.me/601159348334"><strong>WhatsApp: +60 1159 348 334</strong></a></p><br><p>Kind regards,<br><strong>Saujana Film Lab</strong><br>Kuala Lumpur, Malaysia</p>`;
+    const html = `<p>Hi <strong>${r.custName}</strong>! Your scans are ready 🎞️</p><br><p><strong>Order Number: ${r.orderNumber}</strong></p><br><p>Please click the link below to access your scans:</p><br><p><a href="${r.url}"><strong>Get your scans here →</strong></a></p><br><p>Link active for <strong>7 days</strong>. Quote order number when collecting negatives.</p><br><p>Questions? <a href="https://wa.me/601159318334"><strong>WhatsApp: +60 11-5931 8334</strong></a></p><br><p>Kind regards,<br><strong>Saujana Film Lab</strong><br>Kuala Lumpur, Malaysia</p>`;
     const htmlWithNotes = html.replace("</strong></p><br><p>Please click", `</strong></p>${emailNotesHtml(r)}<br><p>Please click`);
     await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([htmlWithNotes],{type:"text/html"})})]);
     showToast("Rich email copied - paste into Gmail!");
@@ -608,7 +608,7 @@ const shortUrl = await getShortLink(longUrl, order.orderNumber);
     if (!result) return;
     const r = result;
     const sub = encodeURIComponent(`[${r.orderNumber}] Your scans are ready - Saujana Film Lab KL`);
-    const body = encodeURIComponent(`Hi ${r.custName}! Your scans are ready 🎞️\n\nOrder: ${r.orderNumber}\n\nPlease click the link below to access your scans:\n\n${r.shortUrl}\n\nLink active for 7 days. Quote order number when collecting negatives.\n\nQuestions? WhatsApp us at +60 1159 348 334\n\nKind regards,\nSaujana Film Lab\nKuala Lumpur, Malaysia`);
+    const body = encodeURIComponent(`Hi ${r.custName}! Your scans are ready 🎞️\n\nOrder: ${r.orderNumber}\n\nPlease click the link below to access your scans:\n\n${r.shortUrl}\n\nLink active for 7 days. Quote order number when collecting negatives.\n\nQuestions? WhatsApp us at +60 11-5931 8334\n\nKind regards,\nSaujana Film Lab\nKuala Lumpur, Malaysia`);
     const bodyWithNotes = r.notes
       ? encodeURIComponent(decodeURIComponent(body).replace(`Order: ${r.orderNumber}\n\nPlease`, `Order: ${r.orderNumber}${emailNotesText(r)}\n\nPlease`))
       : body;
@@ -821,7 +821,7 @@ setSelCust(customer);
   <input
     value={custPhone}
     onChange={e=>setCustPhone(e.target.value)}
-    placeholder="0812xxxxxxx"
+    placeholder="011xxxxxxx"
   />
   {customerChanged && (
     <div style={{marginTop:10}}>
@@ -1098,7 +1098,7 @@ setSelCust(customer);
                 Please click the link below to access your scans:<br/><br/>
                 <span style={{color:"var(--blue-l)",textDecoration:"underline"}}>Get your scans here →</span><br/><br/>
                 Link active for <strong style={{color:"var(--white)"}}>7 days</strong>. Quote order number when collecting negatives.<br/><br/>
-                Questions? WhatsApp us at <strong style={{color:"var(--white)"}}>+60 1159 348 334</strong><br/><br/>
+                Questions? WhatsApp us at <strong style={{color:"var(--white)"}}>+60 11-5931 8334</strong><br/><br/>
                 Kind regards,<br/>
                 <strong style={{color:"var(--white)"}}>Saujana Film Lab</strong><br/>Kuala Lumpur, Malaysia
               </div>
