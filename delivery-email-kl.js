@@ -7,13 +7,13 @@
 
   // These are the stored Grain Brain theme values, not new staff-facing labels.
   const palettes = {
-    classic: {accent: '#02c96d', accentText: '#02c96d', buttonText: '#ffffff',
+    classic: {accent: '#02c96d', accentText: '#02c96d', buttonText: '#ffffff', logoAsset: 'green',
       paper: '#075b35', sleeve: '#ffffff', strip: '#f1faf5',
       line: '#c6e8d2', inset: '#f1faf5', insetLine: '#c6e8d2', hole: '#02c96d',
       muted: '#4e8064', surround: '#f8fcfa', surroundDot: '#dcefe3'},
-    colour: {accent: '#ff6425', paper: '#f3c3a2', sleeve: '#100704', strip: '#271109',
+    colour: {accent: '#ff6425', logoAsset: 'orange', paper: '#f3c3a2', sleeve: '#100704', strip: '#271109',
       line: '#58301d', inset: '#201009', insetLine: '#4a271a', hole: '#080402', muted: '#cfb8a8'},
-    bw: {accent: '#c9a15c', paper: '#ece7db', sleeve: '#0a0b0c', strip: '#1a1d20',
+    bw: {accent: '#c9a15c', logoAsset: 'gold', paper: '#ece7db', sleeve: '#0a0b0c', strip: '#1a1d20',
       line: '#4b402c', inset: '#181b1e', insetLine: '#3d362a', hole: '#050607', muted: '#bab5aa'}
   };
 
@@ -33,7 +33,7 @@
     const name = escapeHtml(order.custName);
     const number = escapeHtml(order.orderNumber);
     const link = escapeHtml(destination.href);
-    const logo = escapeHtml(options.logoUrl || 'https://darkroom.saujanalab.com/saujana-logo.png');
+    const logo = escapeHtml(options.logoUrl || `https://darkroom.saujanalab.com/saujana-logo-${p.logoAsset}.png`);
     const accentText = p.accentText || p.accent;
     const buttonText = p.buttonText || p.sleeve;
     const surround = p.surround || '#171716';
@@ -41,10 +41,7 @@
     const font = "'Helvetica Neue',Helvetica,Arial,sans-serif";
     const mono = "'Courier New',Courier,monospace";
     const holes = Array.from({length: 14}, () => `<td width="7.14%" style="padding:0 3px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="10" bgcolor="${p.hole}" style="height:10px;font-size:0;line-height:0;background-color:${p.hole}">&nbsp;</td></tr></table></td>`).join('');
-    const logoTint = p === palettes.classic
-      ? 'filter:brightness(0) saturate(100%) invert(56%) sepia(87%) saturate(2362%) hue-rotate(104deg) brightness(96%) contrast(102%);'
-      : '';
-    const logoMarkup = `<img src="${logo}" width="200" height="60" alt="Saujana Film Lab Kuala Lumpur" style="display:block;width:200px;max-width:100%;height:60px;object-fit:contain;border:0;color:${p.paper};font:700 14px/20px ${font};${logoTint}">`;
+    const logoMarkup = `<img src="${logo}" width="200" height="60" alt="Saujana Film Lab Kuala Lumpur" style="display:block;width:200px;max-width:100%;height:60px;object-fit:contain;border:0;color:${p.accent};font:700 14px/20px ${font}">`;
     const notes = order.notes ? `<tr><td style="padding:0 24px 20px;color:${p.paper}"><p style="margin:0 0 10px;font:700 12px/18px ${mono};color:${accentText}">A NOTE FROM THE LAB</p><p style="margin:0;padding:0 0 0 14px;border-left:2px solid ${p.accent};font:14px/23px ${font};color:${p.paper}">${escapeHtml(order.notes).replace(/\r?\n/g, '<br>')}</p></td></tr>` : '';
     const sleeve = `<!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]--><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${p.sleeve}" style="width:100%;max-width:600px;table-layout:fixed;word-wrap:break-word;border-collapse:separate;border-spacing:0;border:1px solid ${p.line};border-radius:20px;overflow:hidden;background-color:${p.sleeve};font-family:${font};text-align:left;color:${p.paper}">
       <tr><td bgcolor="${p.strip}" style="padding:10px 16px;background-color:${p.strip};border-bottom:1px solid ${p.line};border-radius:19px 19px 0 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:0 6px 7px;font:700 9px/14px ${mono};color:${accentText}">SAUJANA FILM LAB &middot; KUALA LUMPUR</td><td align="right" style="padding:0 6px 7px;font:9px/14px ${mono};color:${p.paper}">135</td></tr></table><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed"><tr>${holes}</tr></table></td></tr>
