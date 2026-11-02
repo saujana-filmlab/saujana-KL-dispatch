@@ -841,7 +841,7 @@ setSelCust(customer);
       {/* Form */}
       <div style={{width:400,flexShrink:0,overflowY:"auto"}}>
         <div style={css.card}>
-          <span style={css.secLabel}>New Order</span>
+          <span style={{...css.secLabel,fontFamily:"Arial,Helvetica,sans-serif",fontSize:13,fontWeight:700,color:"var(--gold-l)"}}>New Order</span>
 
           {/* Order number */}
           <div style={{marginBottom:18}}>
@@ -1256,7 +1256,7 @@ setSelCust(customer);
         ) : (
           <div style={{...css.card,minHeight:220,display:"flex",alignItems:"center",
                        justifyContent:"center",flexDirection:"column",gap:10}}>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontStyle:"italic",color:"var(--dim)"}}>
+            <div style={{fontFamily:"Arial,Helvetica,sans-serif",fontSize:22,fontWeight:700,lineHeight:1.1,color:"var(--white)"}}>
               Ready to dispatch
             </div>
             <div style={{fontSize:9,color:"var(--dim)",letterSpacing:"0.3em",textTransform:"uppercase"}}>
@@ -2103,7 +2103,7 @@ function StockTracker() {
       {/* Header row */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
         <div>
-          <div className="stock-heading" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontStyle:"italic",color:"var(--white)"}}>
+          <div className="stock-heading" style={{fontFamily:"Arial,Helvetica,sans-serif",fontSize:22,fontWeight:700,lineHeight:1.1,color:"var(--white)"}}>
             Stock Count
           </div>
           <div style={{fontSize:10,fontWeight:600,letterSpacing:"0.2em",textTransform:"uppercase",color:"var(--muted)",marginTop:4}}>
