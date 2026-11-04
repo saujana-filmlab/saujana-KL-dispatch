@@ -5,7 +5,14 @@ const grainBrainSheetRecovery={
  },
  get(){return this.transact('readonly',s=>s.get('publication'))},
  put(value){return this.transact('readwrite',s=>s.put(value,'publication'))},
- clear(){return this.transact('readwrite',s=>s.delete('publication'))}
+ clear(){return this.transact('readwrite',s=>s.delete('publication'))},
+ async dismiss(expectedAttemptKey){
+  const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('grainbrain-kl-sheet-recovery',1);r.onupgradeneeded=()=>r.result.createObjectStore('pending');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(Error('Could not open saved upload.'))});
+  try{return await new Promise((resolve,reject)=>{const tx=db.transaction('pending','readwrite'),store=tx.objectStore('pending'),request=store.get('publication');let removed=false;
+   request.onsuccess=()=>{const saved=request.result;if(!saved)return;if(saved.attempt?.key!==expectedAttemptKey){tx.abort();return;}store.put({...saved,archivedAt:new Date().toISOString()},'archived:'+expectedAttemptKey);store.delete('publication');removed=true;};
+   tx.oncomplete=()=>resolve(removed);tx.onerror=tx.onabort=()=>reject(Error('Saved upload changed. Refresh before dismissing it.'));
+  })}finally{db.close()}
+ }
 };
 async function grainBrainPublishSheets({payload,sheets,attemptRef,api,onProgress,recovery=grainBrainSheetRecovery,uploadHeaders=()=>({})}){
  const digest=async blob=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer())),v=>v.toString(16).padStart(2,'0')).join('');
