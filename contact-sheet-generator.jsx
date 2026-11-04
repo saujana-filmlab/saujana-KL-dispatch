@@ -268,7 +268,7 @@ function ContactSheetGenerator({ embedded=false, orderNumber="", customerName:li
   const availableRolls = React.useMemo(() => linkedRolls.map(value=>String(value||"").trim()).filter(Boolean), [linkedRolls]);
   const [selectedRoll,setSelectedRoll] = React.useState(0);
   const [frames,setFrames] = React.useState([]);
-  const [filmName,setFilmName] = React.useState(availableRolls[0] || "Kodak Ultramax 400");
+  const [filmName,setFilmName] = React.useState(availableRolls[0] || "");
   const [customerName,setCustomerName] = React.useState(linkedCustomerName || "");
   const [renderTag,setRenderTag] = React.useState("");
   const [format,setFormat] = React.useState("full");
@@ -308,6 +308,7 @@ function ContactSheetGenerator({ embedded=false, orderNumber="", customerName:li
 
   React.useEffect(() => {
     if (!availableRolls.length) {
+      setFilmName("");
       setSelectedRoll(0);
       setFrames([]);
       setRollWorkspaces({});
