@@ -14,9 +14,9 @@
   <meta property="og:url" content="https://darkroom.saujanalab.com/" />
   <meta property="og:type" content="website" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&display=swap" rel="stylesheet"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <script src="vendor/react.js"></script>
+  <script src="vendor/react-dom.js"></script>
+  <script src="vendor/babel.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -142,10 +142,10 @@ input,textarea{
     button{cursor:pointer;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;}
     a{text-decoration:none;}
   </style>
-</head>
+<style>.cs-studio{height:calc(100dvh - 290px);min-height:520px}.gb-trial-dispatch{min-height:0}@media(max-width:1050px){.gb-trial-dispatch{height:auto!important;display:block!important}.gb-trial-dispatch>div{width:100%!important;overflow:visible!important}.cs-studio{height:auto}}@media(max-width:650px){.cs-studio{min-height:0}.gb-station-header{flex-wrap:wrap;gap:12px}.gb-station-header>div{max-width:100%}.gb-station-header>div:last-child{flex-wrap:wrap;gap:8px!important}.gb-station-header img{max-width:100%!important}.gb-station-header+div{flex-wrap:wrap}.gb-station-header+div>button{padding:10px 12px!important;flex:1}}</style></head>
 <body>
 <div id="root"></div>
-<script src="engine-config.js"></script>
+<script src="engine-config.js"></script><script src="vendor/pako.js"></script><script src="vendor/utif.js"></script><link rel="stylesheet" href="contact-sheet-studio.css"><script type="text/babel" src="contact-sheet-studio.jsx"></script><script type="text/babel" src="contact-sheet-generator.jsx?v=20261103-logo-fit"></script><script type="text/babel" src="grain-brain-sheets.jsx?v=20261103-recovery"></script>
 <script src="delivery-email-kl.js?v=20261012-negatives"></script>
 <script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
@@ -157,9 +157,9 @@ const AUTH_KEY = "grain-brain-live-session";
 const CACHE_KEY = "grain-brain-live-dispatch-cache-v1";
 const STOCK_CACHE_KEY = "grain-brain-live-stock-cache-v1";
 const STOCK_HISTORY_CACHE_KEY = "grain-brain-live-stock-history-cache-v1";
-const API_TIMEOUTS = {default:20000,getInitialData:12000,getCustomers:12000,getOrders:12000,getStock:12000,getStockHistory:12000,saveStock:35000,finalizeStock:45000,recordStockHistory:35000,addOrder:35000,createFolder:45000};
+const API_TIMEOUTS = {prepareContactSheetPublish:45000,createContactSheetUploadTickets:120000,completeContactSheetUpload:180000,default:20000,getInitialData:12000,getCustomers:12000,getOrders:12000,getStock:12000,getStockHistory:12000,saveStock:35000,finalizeStock:45000,recordStockHistory:35000,addOrder:35000,createFolder:45000};
 const RETRY_ACTIONS = new Set(["getInitialData","getCustomers","getOrders","getStock","getStockHistory"]);
-const WRITE_ACTIONS = new Set(["addCustomer","updateCustomer","deleteCustomer","addOrder","updateCollectNegatives","saveStock","finalizeStock"]);
+const WRITE_ACTIONS = new Set(["prepareContactSheetPublish","beginContactSheetUpload","createContactSheetUploadTicket","createContactSheetUploadTickets","completeContactSheetUpload","cancelContactSheetUpload","addCustomer","updateCustomer","deleteCustomer","addOrder","updateCollectNegatives","saveStock","finalizeStock"]);
 const RETRY_DELAYS = [600,1600,3600];
 
 function readCache(){try{if(!sessionStorage.getItem(AUTH_KEY))return null;const v=JSON.parse(sessionStorage.getItem(CACHE_KEY)||"null");return v&&Array.isArray(v.customers)&&Array.isArray(v.orders)?v:null}catch(e){return null}}
@@ -296,6 +296,71 @@ function Toast({msg}) {
   ) : null;
 }
 
+function DeliveryThemePreview({
+  theme,
+  customerName,
+  orderNumber,
+  sheets,
+  activeSheet,
+  previewRoll,
+  setPreviewRoll,
+  driveLink
+}) {
+  return (
+    <div style={css.card}>
+      <span style={css.secLabel}>Live Delivery Theme Preview</span>
+      <div style={{
+        background:theme.surface,
+        border:`1px solid ${theme.accent}55`,
+        padding:18,
+        backgroundImage:`radial-gradient(circle,${theme.accent}20 0 1px,transparent 1.2px)`,
+        backgroundSize:"16px 16px",
+        transition:"background .2s ease,border-color .2s ease"
+      }}>
+        <div style={{display:"flex",justifyContent:"space-between",gap:14,alignItems:"flex-end",marginBottom:15}}>
+          <div>
+            <div style={{fontFamily:"'Helvetica Neue',Arial,sans-serif",fontSize:24,fontWeight:800,lineHeight:.95,textTransform:"uppercase",color:theme.accent}}>Your scans are ready,</div>
+            <div style={{fontFamily:"'Helvetica Neue',Arial,sans-serif",fontSize:19,fontWeight:800,textTransform:"uppercase",color:theme.paper,marginTop:5}}>{customerName || "Customer Name"}</div>
+            <div style={{fontSize:8,color:theme.paper,opacity:.62,marginTop:6,letterSpacing:".12em"}}>ORDER {orderNumber || "0000000"}</div>
+          </div>
+          <span style={{fontSize:8,color:theme.accent,letterSpacing:".16em",textTransform:"uppercase",textAlign:"right"}}>{theme.label}<br/>Saujana Film Lab Kuala Lumpur</span>
+        </div>
+        {activeSheet ? (
+          <div>
+            <div style={{position:"relative"}}>
+              <img src={activeSheet.deliveryPreviewUrl} alt={`${activeSheet.filmName} contact sheet`} style={{display:"block",width:"100%",height:"auto",border:`1px solid ${theme.accent}55`}}/>
+              {sheets.length>1 && <>
+                <button onClick={()=>setPreviewRoll(index=>(index-1+sheets.length)%sheets.length)} aria-label="Previous roll" style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:34,height:44,border:"1px solid #555",background:"rgba(0,0,0,.78)",color:"#fff",fontSize:22}}>‹</button>
+                <button onClick={()=>setPreviewRoll(index=>(index+1)%sheets.length)} aria-label="Next roll" style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",width:34,height:44,border:"1px solid #555",background:"rgba(0,0,0,.78)",color:"#fff",fontSize:22}}>›</button>
+              </>}
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",gap:12,marginTop:7,fontSize:8,color:theme.paper,opacity:.65,textTransform:"uppercase",letterSpacing:".1em"}}>
+              <span>{activeSheet.filmName}</span>
+              <span>{activeSheet.frameCount} frames</span>
+            </div>
+            {sheets.length>1 && <div style={{display:"flex",justifyContent:"center",gap:6,marginTop:10}}>{sheets.map((sheet,index)=><button key={sheet.rollKey || `${sheet.rollIndex}-${index}`} onClick={()=>setPreviewRoll(index)} aria-label={`Show roll ${index+1}`} style={{width:7,height:7,padding:0,border:0,borderRadius:"50%",background:index===previewRoll?theme.accent:"#4b4b4b"}}/>)}</div>}
+          </div>
+        ) : (
+          <div style={{padding:"26px 14px",border:`1px dashed ${theme.accent}55`,textAlign:"center",fontSize:9,color:theme.paper,opacity:.62}}>
+            Contact-sheet preview will appear here when included.
+          </div>
+        )}
+        {driveLink ? (
+          <a href={driveLink} target="_blank" rel="noopener" style={{display:"block",marginTop:15,padding:"12px 14px",background:theme.accent,color:theme.surface,textAlign:"center",fontSize:9,fontWeight:800,letterSpacing:".13em",textTransform:"uppercase"}}>
+            Download your scans here ↗
+          </a>
+        ) : (
+          <div style={{display:"block",marginTop:15,padding:"12px 14px",background:theme.accent,color:theme.surface,textAlign:"center",fontSize:9,fontWeight:800,letterSpacing:".13em",textTransform:"uppercase",opacity:.72}}>
+            Download your scans here
+          </div>
+        )}
+      </div>
+      <div style={{fontSize:8,color:"var(--dim)",lineHeight:1.55,marginTop:8}}>
+        Changes instantly as you select a delivery theme. Nothing is published from this preview.
+      </div>
+    </div>
+  );
+}
 function LockScreen({onUnlock}) {
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
@@ -429,6 +494,24 @@ function Dispatch({customers, orders=[], onOrderSaved, onOrderUpdated, prefill, 
   const [deliveryTheme, setDeliveryTheme] = useState("classic");
   const [collectNegatives, setCollectNegatives] = useState("");
   const [rolls, setRolls]         = useState([""]);
+  const [sheetPairs,setSheetPairs]=useState({}),[excludedSheets,setExcludedSheets]=useState([]),[skipSheets,setSkipSheets]=useState(false);
+  const sheetAttemptRef=useRef(null);
+  const [sheetRecovery,setSheetRecovery]=useState(null);
+  useEffect(()=>{grainBrainSheetRecovery.get().then(setSheetRecovery).catch(error=>showToast(error.message));},[]);
+  async function resumeSheetPublication(){
+    setGenerating(true);
+    try{
+      const pending=await grainBrainSheetRecovery.get();if(!pending)throw Error('No unfinished publication was found.');
+      const saved=await grainBrainPublishSheets({payload:pending.payload,sheets:pending.sheets,attemptRef:sheetAttemptRef,api:apiCall,onProgress:message=>showToast(message)});
+      const delivered={...saved,...pending.payload},url=deliveryUrl(delivered);onOrderSaved(delivered,pending.payload.customerId);setSheetRecovery(null);
+      setResult({id:saved.id,url,shortUrl:url,custName:pending.payload.deliveryName||pending.payload.customerName,orderNumber:pending.payload.orderNumber,film:pending.payload.film,notes:pending.payload.notes,deliveryTheme:pending.payload.deliveryTheme,collectNegatives:pending.payload.collectNegatives});showToast('Publication completed. Check the delivery preview.');
+    }catch(error){showToast(error.message)}finally{setGenerating(false)}
+  }
+  function invalidateSheet(index){setSheetPairs(previous=>{const next={...previous};delete next[index];return next});}
+  const namedRolls=rolls.filter(value=>String(value).trim());
+  const sheetsResolved=skipSheets||namedRolls.every((_,index)=>excludedSheets.includes(index)||sheetPairs[index]);
+  
+
   const [driveLink, setDriveLink] = useState("");
   const [notes, setNotes]         = useState("");
   const [result, setResult]       = useState(null);
@@ -443,7 +526,7 @@ function Dispatch({customers, orders=[], onOrderSaved, onOrderUpdated, prefill, 
   const orderDraftRef = useRef(null);
 
   function resetOrderForm(){
-    orderDraftRef.current=null;
+    orderDraftRef.current=null;sheetAttemptRef.current=null;setSheetPairs({});setExcludedSheets([]);setSkipSheets(false);
     setOrderNo("");setCustInput("");setSelCust(null);setCustEmail("");setExtraEmails([]);setCustPhone("");
     setDeliveryName("");setCustomDeliveryName(false);setDeliveryTheme("classic");setCollectNegatives("");setRolls([""]);setDriveLink("");setNotes("");
     setResult(null);setGenerating(false);setCreatingFolder(false);setShowDrop(false);setCopied({});setOrderSearch("");
@@ -608,6 +691,7 @@ function addRoll() {
       showToast("This order number already exists. Check the saved orders first.");
       return;
     }
+    if(!sheetsResolved){showToast("Finalize or skip each contact-sheet roll first.");return;}
     setGenerating(true);
     
     const registryName = selCust ? selCust.name : (custInput.trim() || "Customer");
@@ -630,12 +714,13 @@ if (orderDraftRef.current?.fingerprint!==fingerprint) {
   orderDraftRef.current={fingerprint,requestKey:`order_${crypto.randomUUID().replace(/-/g,"")}`,order:{...draft,deliveryDate:new Date().toISOString()}};
 }
 const {order,requestKey}=orderDraftRef.current;
-const saved = await apiCall("addOrder", {
-  ...order,
-  customerId: selCust?.id || "",
-  customerName: registryName,
-  requestKey
-});
+let saved;
+try {
+ const payload={...order,customerId:selCust?.id||"",customerName:registryName,requestKey};
+ const included=skipSheets?[]:Object.values(sheetPairs).filter(sheet=>!excludedSheets.includes(sheet.rollIndex));
+ saved=included.length?await grainBrainPublishSheets({payload,sheets:included,attemptRef:sheetAttemptRef,api:apiCall,onProgress:message=>showToast(message)}):await apiCall("addOrder",payload);
+ setSheetRecovery(null);
+}catch(error){setGenerating(false);setSheetRecovery(await grainBrainSheetRecovery.get().catch(()=>null));showToast(error.message||"Publishing failed. Retry the same order.");return;}
 
 if (!saved || saved.error) {
   setGenerating(false);
@@ -759,7 +844,7 @@ Saujana Film Lab KL`;
     "_blank"
   );
 }
-  const canGen = orderNo.trim() && rolls.some(Boolean) && driveLink.trim() && ['yes','no'].includes(collectNegatives);
+  const canGen = sheetsResolved && orderNo.trim() && rolls.some(Boolean) && driveLink.trim() && ['yes','no'].includes(collectNegatives);
   const hasOrderSearch = orderSearch.trim().length > 0;
   const pastOrders = orders
     .filter(o=>o.driveLink)
@@ -814,8 +899,14 @@ setSelCust(customer);
     showToast("Memories Digged! ✓");
   }
 
+  const [previewRoll,setPreviewRoll]=useState(0);
+  const previewSheets=skipSheets?[]:Object.values(sheetPairs).filter(s=>!excludedSheets.includes(s.rollIndex)).sort((a,b)=>a.rollIndex-b.rollIndex);
+  const previewTheme=DELIVERY_THEME_OPTIONS.find(t=>t.value===deliveryTheme)||DELIVERY_THEME_OPTIONS[0];
+  const previewName=customDeliveryName&&deliveryName?deliveryName:custInput;
+  const draftEmail={custName:previewName||'Customer Name',orderNumber:orderNo||'0000000',film:namedRolls.join(' · '),notes,deliveryTheme,collectNegatives,url:location.origin+'/#draft-not-published',shortUrl:location.origin+'/#draft-not-published'};
+  useEffect(()=>{if(result)document.getElementById('kl-delivery-workspace')?.scrollIntoView({block:'start'});},[result]);
   return (
-    <div style={{display:"flex",gap:16,height:"calc(100vh - 130px)"}}>
+    <div className="gb-trial-dispatch" style={{display:"flex",gap:16,height:"calc(100vh - 165px)"}}>
       <Toast msg={toast}/>
 
       {/* Form */}
@@ -1146,7 +1237,7 @@ setSelCust(customer);
 
           <button onClick={generate} disabled={!canGen||generating}
             style={{...css.btn("blue"),width:"100%",padding:14,opacity:canGen&&!generating?1:0.4}}>
-            {generating?"Saving & Shortening...":"Generate Delivery Link"}
+            {generating?"Publishing...":"Publish & Generate Delivery Link"}
           </button>
         </div>
       </div>
@@ -1154,6 +1245,18 @@ setSelCust(customer);
       {/* Result */}
       <div style={{flex:1,minWidth:0,overflowY:"auto"}}>
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <div style={{...css.card,marginBottom:12}}>
+          <label style={{display:'flex',gap:8,alignItems:'center',fontSize:12,marginBottom:12}}><input type="checkbox" style={{width:'auto'}} checked={skipSheets} disabled={generating} onChange={e=>setSkipSheets(e.target.checked)}/> Continue without contact sheets</label>
+          {sheetRecovery&&<div role="status" style={{border:'1px solid #e8b84b',padding:12,marginBottom:12,fontSize:14}}>Unfinished contact-sheet publication: <strong>{sheetRecovery.payload.orderNumber}</strong>. Your saved sheets are retained. The delivery is not ready yet. {sheetRecovery.lastError&&<span style={{display:"block",margin:"8px 0"}}>{sheetRecovery.lastError}</span>} <button disabled={generating} onClick={resumeSheetPublication}>Resume saved publication</button></div>}
+          <ContactSheetGenerator key={resetSignal} embedded layoutPreview rolls={namedRolls} customerName={customDeliveryName&&deliveryName?deliveryName:custInput} orderNumber={orderNo} excludedRolls={skipSheets?namedRolls.map((_,i)=>i):excludedSheets} onRollInclusionChange={(index,include)=>setExcludedSheets(previous=>include?previous.filter(i=>i!==index):[...previous,index])} onSheetsChange={sheet=>setSheetPairs(previous=>({...previous,[sheet.rollIndex]:sheet}))} onSheetInvalidated={invalidateSheet}/>
+          
+        </div>
+        <DeliveryThemePreview theme={previewTheme} customerName={previewName} orderNumber={orderNo} sheets={previewSheets} activeSheet={previewSheets[Math.min(previewRoll,previewSheets.length-1)]} previewRoll={previewRoll} setPreviewRoll={setPreviewRoll} driveLink={driveLink}/>
+        <div id="kl-delivery-workspace"/>
+        {!result&&<>
+          <div style={css.card}><span style={css.secLabel}>Delivery Page Link</span><p style={{fontSize:13,color:'var(--light)',lineHeight:1.6}}>Not published yet. Your delivery link appears here after publishing succeeds.</p></div>
+          <div style={css.card}><span style={css.secLabel}>Email · Draft preview</span><div style={{maxHeight:420,overflowY:'auto',marginBottom:12}} dangerouslySetInnerHTML={{__html:deliveryEmailHtml(draftEmail)}}/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}><button disabled style={css.btn()}>Send with Gmail</button><button disabled style={css.btn('ghost')}>Send Email ↗</button></div><p style={{fontSize:12,color:'var(--muted)',marginTop:10}}>Publish successfully before copying or sending this email.</p></div>
+        </>}
         {result ? (
           <>
             <div style={css.card}>
@@ -1664,7 +1767,7 @@ function App() {
       <div style={{background:"var(--dark)",borderBottom:"1px solid var(--border)",
                    padding:"0 24px",position:"sticky",top:0,zIndex:100}}>
         <div style={{maxWidth:1100,margin:"0 auto"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:14}}>
+          <div className="gb-station-header" style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:14}}>
             <div>
               <img className="brand-logo" src="saujana-gb.png" alt="Grain Brain" style={{height:45, maxWidth:360, objectFit:"contain", display:"block"}}/>
               <div style={{fontSize:10,fontWeight:600,letterSpacing:"0.22em",textTransform:"uppercase",color:"var(--muted)",marginTop:8}}>
